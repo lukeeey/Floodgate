@@ -11,7 +11,10 @@ import net.md_5.bungee.event.EventPriority;
 import net.md_5.bungee.protocol.packet.Handshake;
 import org.geysermc.floodgate.HandshakeHandler.HandshakeResult;
 import org.geysermc.floodgate.HandshakeHandler.ResultType;
+import org.geysermc.floodgate.command.LinkAccountCommand;
+import org.geysermc.floodgate.command.UnlinkAccountCommand;
 import org.geysermc.floodgate.util.BedrockData;
+import org.geysermc.floodgate.util.CommandUtil;
 import org.geysermc.floodgate.util.ReflectionUtil;
 
 import java.lang.reflect.Field;
@@ -37,8 +40,6 @@ public class BungeePlugin extends Plugin implements Listener {
         }
         config = FloodgateConfig.load(getLogger(), getDataFolder().toPath().resolve("config.yml"), BungeeFloodgateConfig.class);
         playerLink = PlayerLink.initialize(getLogger(), getDataFolder().toPath(), config);
-        LinkAccountCommand.init(playerLink);
-        UnlinkAccountCommand.init(playerLink);
         handshakeHandler = new HandshakeHandler(config.getPrivateKey(), true, config.getUsernamePrefix(), config.isReplaceSpaces());
     }
 
@@ -48,8 +49,10 @@ public class BungeePlugin extends Plugin implements Listener {
         if (config.isDebug()) {
             debugger = new BungeeDebugger();
         }
-        getProxy().getPluginManager().registerCommand(this, new LinkAccountCommand());
-        getProxy().getPluginManager().registerCommand(this, new UnlinkAccountCommand());
+
+        CommandUtil commandUtil = new CommandUtil();
+        getProxy().getPluginManager().registerCommand(this, new LinkAccountCommand(playerLink, commandUtil));
+        getProxy().getPluginManager().registerCommand(this, new UnlinkAccountCommand(playerLink, commandUtil));
     }
 
     @Override
@@ -57,6 +60,7 @@ public class BungeePlugin extends Plugin implements Listener {
         if (config.isDebug()) {
             getLogger().warning("Please note that it is not possible to reload this plugin when debug mode is enabled. At least for now");
         }
+        playerLink.stop();
     }
 
     @EventHandler(priority = EventPriority.LOW)
