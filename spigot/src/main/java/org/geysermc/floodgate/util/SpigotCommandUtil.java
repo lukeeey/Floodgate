@@ -35,36 +35,35 @@ import org.geysermc.floodgate.platform.command.CommandUtil;
 
 @RequiredArgsConstructor
 public final class SpigotCommandUtil implements CommandUtil {
-    private final JavaPlugin plugin;
+  private final JavaPlugin plugin;
 
-    private final FloodgateLogger logger;
-    private final LanguageManager manager;
+  private final FloodgateLogger logger;
+  private final LanguageManager manager;
 
-    @Override
-    public void sendMessage(Object player, String locale, CommandMessage message, Object... args) {
-        cast(player).sendMessage(translateAndTransform(locale, message, args));
+  @Override
+  public void sendMessage(Object player, String locale, CommandMessage message, Object... args) {
+    cast(player).sendMessage(translateAndTransform(locale, message, args));
+  }
+
+  @Override
+  public void kickPlayer(Object player, String locale, CommandMessage message, Object... args) {
+    // Have to run this in the main thread so we don't get a `Asynchronous player kick!` error
+    Bukkit.getScheduler()
+        .runTask(
+            plugin, () -> cast(player).kickPlayer(translateAndTransform(locale, message, args)));
+  }
+
+  public String translateAndTransform(String locale, CommandMessage message, Object... args) {
+    // unlike others, Bukkit doesn't have to transform a message into another class.
+    return manager.getString(message.getMessage(), locale, args);
+  }
+
+  protected Player cast(Object instance) {
+    try {
+      return (Player) instance;
+    } catch (ClassCastException exception) {
+      logger.error("Failed to cast {} to Player", instance.getClass().getName());
+      throw exception;
     }
-
-    @Override
-    public void kickPlayer(Object player, String locale, CommandMessage message, Object... args) {
-        // Have to run this in the main thread so we don't get a `Asynchronous player kick!` error
-        Bukkit.getScheduler().runTask(plugin,
-                () -> cast(player).kickPlayer(translateAndTransform(locale, message, args)));
-    }
-
-    public String translateAndTransform(String locale, CommandMessage message, Object... args) {
-        // unlike others, Bukkit doesn't have to transform a message into another class.
-        return manager.getString(
-                message.getMessage(), locale, args
-        );
-    }
-
-    protected Player cast(Object instance) {
-        try {
-            return (Player) instance;
-        } catch (ClassCastException exception) {
-            logger.error("Failed to cast {} to Player", instance.getClass().getName());
-            throw exception;
-        }
-    }
+  }
 }

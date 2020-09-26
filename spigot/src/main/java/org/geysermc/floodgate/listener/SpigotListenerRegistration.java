@@ -34,10 +34,10 @@ import org.geysermc.floodgate.platform.listener.ListenerRegistration;
 
 @RequiredArgsConstructor(onConstructor = @__(@Inject))
 public final class SpigotListenerRegistration implements ListenerRegistration<Listener> {
-    private final JavaPlugin plugin;
+  private final JavaPlugin plugin;
 
-    @Override
-    public void register(Listener listener) {
-        Bukkit.getServer().getPluginManager().registerEvents(listener, plugin);
-    }
+  @Override
+  public void register(Listener listener) {
+    Bukkit.getServer().getPluginManager().registerEvents(listener, plugin);
+  }
 }

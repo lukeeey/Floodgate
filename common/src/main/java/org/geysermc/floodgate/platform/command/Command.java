@@ -27,60 +27,54 @@ package org.geysermc.floodgate.platform.command;
 
 import java.util.UUID;
 
-/**
- * The base class for every Floodgate command.
- */
+/** The base class for every Floodgate command. */
 public interface Command {
-    /**
-     * Should be implemented when {@link #isRequirePlayer()} is true
-     * or when the source is a player.
-     *
-     * @param player   the player instance (used for example in combination with
-     *                 {@link CommandUtil#kickPlayer(Object, String, CommandMessage, Object...)}
-     * @param uuid     the uuid of the player
-     * @param username the username of the player
-     * @param locale   the locale of the player
-     * @param args     the arguments of the command
-     */
-    default void execute(Object player, UUID uuid, String username, String locale, String... args) {
+  /**
+   * Should be implemented when {@link #isRequirePlayer()} is true or when the source is a player.
+   *
+   * @param player the player instance (used for example in combination with {@link
+   *     CommandUtil#kickPlayer(Object, String, CommandMessage, Object...)}
+   * @param uuid the uuid of the player
+   * @param username the username of the player
+   * @param locale the locale of the player
+   * @param args the arguments of the command
+   */
+  default void execute(Object player, UUID uuid, String username, String locale, String... args) {}
+
+  /**
+   * Should be implemented when {@link #isRequirePlayer()} is false.
+   *
+   * @param source the CommandSource (Velocity) or CommandExecutor (Bungee and Bukkit) that executed
+   *     this command
+   * @param locale the system locale
+   * @param args the arguments of the command
+   */
+  default void execute(Object source, String locale, String... args) {
+    if (isRequirePlayer()) {
+      throw new RuntimeException("Cannot execute this command since it requires a player");
     }
+  }
 
-    /**
-     * Should be implemented when {@link #isRequirePlayer()} is false.
-     *
-     * @param source the CommandSource (Velocity) or CommandExecutor (Bungee and Bukkit) that
-     *               executed this command
-     * @param locale the system locale
-     * @param args   the arguments of the command
-     */
-    default void execute(Object source, String locale, String... args) {
-        if (isRequirePlayer()) {
-            throw new RuntimeException(
-                    "Cannot execute this command since it requires a player"
-            );
-        }
-    }
+  /**
+   * The command name that should be registered and used by the CommandSource.
+   *
+   * @return the name of the command that should be registered
+   */
+  String getName();
 
-    /**
-     * The command name that should be registered and used by the CommandSource.
-     *
-     * @return the name of the command that should be registered
-     */
-    String getName();
+  /**
+   * The permission that is required to execute the specific command. Should return null when there
+   * is no permission required.
+   *
+   * @return the permission required to execute the command
+   */
+  String getPermission();
 
-    /**
-     * The permission that is required to execute the specific command.
-     * Should return null when there is no permission required.
-     *
-     * @return the permission required to execute the command
-     */
-    String getPermission();
-
-    /**
-     * If the Command requires a Player to execute this command
-     * or if it doesn't matter if (for example) the console executes the command.
-     *
-     * @return true if this command can only be executed by a player
-     */
-    boolean isRequirePlayer();
+  /**
+   * If the Command requires a Player to execute this command or if it doesn't matter if (for
+   * example) the console executes the command.
+   *
+   * @return true if this command can only be executed by a player
+   */
+  boolean isRequirePlayer();
 }

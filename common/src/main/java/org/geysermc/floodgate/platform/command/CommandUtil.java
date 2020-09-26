@@ -26,28 +26,28 @@
 package org.geysermc.floodgate.platform.command;
 
 /**
- * An interface used across all Floodgate platforms to simple stuff in commands like kicking
- * players and sending player messages independent of the Floodgate platform implementation.
+ * An interface used across all Floodgate platforms to simple stuff in commands like kicking players
+ * and sending player messages independent of the Floodgate platform implementation.
  */
 public interface CommandUtil {
-    /**
-     * Send a message to the specified player, no matter what platform Floodgate is running on.
-     *
-     * @param player  the player to send the message to
-     * @param message the command message
-     * @param locale  the locale of the player
-     * @param args    the arguments
-     */
-    void sendMessage(Object player, String locale, CommandMessage message, Object... args);
+  /**
+   * Send a message to the specified player, no matter what platform Floodgate is running on.
+   *
+   * @param player the player to send the message to
+   * @param message the command message
+   * @param locale the locale of the player
+   * @param args the arguments
+   */
+  void sendMessage(Object player, String locale, CommandMessage message, Object... args);
 
-    /**
-     * Same as {@link CommandUtil#sendMessage(Object, String, CommandMessage, Object...)} except it
-     * kicks the player.
-     *
-     * @param player  the player to send the message to
-     * @param message the command message
-     * @param locale  the locale of the player
-     * @param args    the arguments
-     */
-    void kickPlayer(Object player, String locale, CommandMessage message, Object... args);
+  /**
+   * Same as {@link CommandUtil#sendMessage(Object, String, CommandMessage, Object...)} except it
+   * kicks the player.
+   *
+   * @param player the player to send the message to
+   * @param message the command message
+   * @param locale the locale of the player
+   * @param args the arguments
+   */
+  void kickPlayer(Object player, String locale, CommandMessage message, Object... args);
 }

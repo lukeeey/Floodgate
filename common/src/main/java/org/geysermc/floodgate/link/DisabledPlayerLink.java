@@ -25,59 +25,56 @@
 
 package org.geysermc.floodgate.link;
 
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import org.geysermc.floodgate.api.FloodgateApi;
 import org.geysermc.floodgate.api.link.PlayerLink;
 import org.geysermc.floodgate.util.LinkedPlayer;
 
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-
 /**
- * Simple class used when PlayerLinking is disabled.
- * This class has been made because Floodgate doesn't have a default PlayerLink implementation
- * anymore and {@link FloodgateApi#getPlayerLink()} returning null} is also not an option.
+ * Simple class used when PlayerLinking is disabled. This class has been made because Floodgate
+ * doesn't have a default PlayerLink implementation anymore and {@link FloodgateApi#getPlayerLink()}
+ * returning null} is also not an option.
  */
 final class DisabledPlayerLink implements PlayerLink {
-    @Override
-    public void load() {
-    }
+  @Override
+  public void load() {}
 
-    @Override
-    public CompletableFuture<LinkedPlayer> getLinkedPlayer(UUID bedrockId) {
-        return null;
-    }
+  @Override
+  public CompletableFuture<LinkedPlayer> getLinkedPlayer(UUID bedrockId) {
+    return null;
+  }
 
-    @Override
-    public CompletableFuture<Boolean> isLinkedPlayer(UUID bedrockId) {
-        return null;
-    }
+  @Override
+  public CompletableFuture<Boolean> isLinkedPlayer(UUID bedrockId) {
+    return null;
+  }
 
-    @Override
-    public CompletableFuture<Void> linkPlayer(UUID bedrockId, UUID javaId, String username) {
-        return null;
-    }
+  @Override
+  public CompletableFuture<Void> linkPlayer(UUID bedrockId, UUID javaId, String username) {
+    return null;
+  }
 
-    @Override
-    public CompletableFuture<Void> unlinkPlayer(UUID javaId) {
-        return null;
-    }
+  @Override
+  public CompletableFuture<Void> unlinkPlayer(UUID javaId) {
+    return null;
+  }
 
-    @Override
-    public boolean isEnabled() {
-        return false;
-    }
+  @Override
+  public boolean isEnabled() {
+    return false;
+  }
 
-    @Override
-    public long getVerifyLinkTimeout() {
-        return -1;
-    }
+  @Override
+  public long getVerifyLinkTimeout() {
+    return -1;
+  }
 
-    @Override
-    public boolean isAllowLinking() {
-        return false;
-    }
+  @Override
+  public boolean isAllowLinking() {
+    return false;
+  }
 
-    @Override
-    public void stop() {
-    }
+  @Override
+  public void stop() {}
 }

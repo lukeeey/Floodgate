@@ -32,19 +32,19 @@ import org.geysermc.floodgate.platform.command.CommandMessage;
  * Messages (or part of messages) that are used in two or more commands and thus are 'commonly used'
  */
 public enum CommonCommandMessage implements CommandMessage {
-    NOT_A_PLAYER("floodgate.commands.not_a_player"),
-    CHECK_CONSOLE("floodgate.commands.check_console"),
-    // TODO used to also have console check
-    IS_LINKED_ERROR("floodgate.commands.is_linked_error");
+  NOT_A_PLAYER("floodgate.commands.not_a_player"),
+  CHECK_CONSOLE("floodgate.commands.check_console"),
+  // TODO used to also have console check
+  IS_LINKED_ERROR("floodgate.commands.is_linked_error");
 
-    @Getter private final String message;
+  @Getter private final String message;
 
-    CommonCommandMessage(String message) {
-        this.message = message;
-    }
+  CommonCommandMessage(String message) {
+    this.message = message;
+  }
 
-    @Override
-    public String toString() {
-        return getMessage();
-    }
+  @Override
+  public String toString() {
+    return getMessage();
+  }
 }

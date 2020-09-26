@@ -35,45 +35,48 @@ import org.geysermc.floodgate.api.logger.FloodgateLogger;
 import org.geysermc.floodgate.config.FloodgateConfig;
 
 public final class DebugAddon implements InjectorAddon {
-    @Inject private FloodgateConfig config;
-    @Inject private FloodgateLogger logger;
+  @Inject private FloodgateConfig config;
+  @Inject private FloodgateLogger logger;
 
-    @Inject
-    @Named("implementationName")
-    private String implementationName;
+  @Inject
+  @Named("implementationName")
+  private String implementationName;
 
-    @Inject
-    @Named("packetEncoder")
-    private String packetEncoder;
+  @Inject
+  @Named("packetEncoder")
+  private String packetEncoder;
 
-    @Inject
-    @Named("packetDecoder")
-    private String packetDecoder;
+  @Inject
+  @Named("packetDecoder")
+  private String packetDecoder;
 
-    @Override
-    public void onInject(Channel channel, boolean proxyToServer) {
-        channel.pipeline().addBefore(
-                packetEncoder, "floodgate_debug_out",
-                new ChannelOutDebugHandler(implementationName, !proxyToServer, logger)
-        ).addBefore(
-                packetDecoder, "floodgate_debug_in",
-                new ChannelInDebugHandler(logger, implementationName, !proxyToServer)
-        );
-    }
+  @Override
+  public void onInject(Channel channel, boolean proxyToServer) {
+    channel
+        .pipeline()
+        .addBefore(
+            packetEncoder,
+            "floodgate_debug_out",
+            new ChannelOutDebugHandler(implementationName, !proxyToServer, logger))
+        .addBefore(
+            packetDecoder,
+            "floodgate_debug_in",
+            new ChannelInDebugHandler(logger, implementationName, !proxyToServer));
+  }
 
-    @Override
-    public void onLoginDone(Channel channel) {
-        onRemoveInject(channel);
-    }
+  @Override
+  public void onLoginDone(Channel channel) {
+    onRemoveInject(channel);
+  }
 
-    @Override
-    public void onRemoveInject(Channel channel) {
-        channel.pipeline().remove("floodgate_debug_out");
-        channel.pipeline().remove("floodgate_debug_in");
-    }
+  @Override
+  public void onRemoveInject(Channel channel) {
+    channel.pipeline().remove("floodgate_debug_out");
+    channel.pipeline().remove("floodgate_debug_in");
+  }
 
-    @Override
-    public boolean shouldInject() {
-        return config.isDebug();
-    }
+  @Override
+  public boolean shouldInject() {
+    return config.isDebug();
+  }
 }

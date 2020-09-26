@@ -25,59 +25,58 @@
 
 package org.geysermc.floodgate.logger;
 
-import lombok.RequiredArgsConstructor;
-import org.geysermc.floodgate.api.logger.FloodgateLogger;
+import static org.geysermc.floodgate.util.MessageFormatter.format;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import static org.geysermc.floodgate.util.MessageFormatter.format;
+import lombok.RequiredArgsConstructor;
+import org.geysermc.floodgate.api.logger.FloodgateLogger;
 
 @RequiredArgsConstructor
 public final class JavaUtilFloodgateLogger implements FloodgateLogger {
-    private final Logger logger;
-    private Level originLevel = null;
+  private final Logger logger;
+  private Level originLevel = null;
 
-    @Override
-    public void error(String message, Object... args) {
-        logger.severe(format(message, args));
-    }
+  @Override
+  public void error(String message, Object... args) {
+    logger.severe(format(message, args));
+  }
 
-    @Override
-    public void error(String message, Throwable throwable, Object... args) {
-        logger.log(Level.SEVERE, format(message, args), throwable);
-    }
+  @Override
+  public void error(String message, Throwable throwable, Object... args) {
+    logger.log(Level.SEVERE, format(message, args), throwable);
+  }
 
-    @Override
-    public void warn(String message, Object... args) {
-        logger.warning(format(message, args));
-    }
+  @Override
+  public void warn(String message, Object... args) {
+    logger.warning(format(message, args));
+  }
 
-    @Override
-    public void info(String message, Object... args) {
-        logger.info(format(message, args));
-    }
+  @Override
+  public void info(String message, Object... args) {
+    logger.info(format(message, args));
+  }
 
-    @Override
-    public void debug(String message, Object... args) {
-        logger.fine(format(message, args));
-    }
+  @Override
+  public void debug(String message, Object... args) {
+    logger.fine(format(message, args));
+  }
 
-    @Override
-    public void trace(String message, Object... args) {
-        logger.finer(format(message, args));
-    }
+  @Override
+  public void trace(String message, Object... args) {
+    logger.finer(format(message, args));
+  }
 
-    @Override
-    public void enableDebug() {
-        originLevel = logger.getLevel();
-        logger.setLevel(Level.ALL);
-    }
+  @Override
+  public void enableDebug() {
+    originLevel = logger.getLevel();
+    logger.setLevel(Level.ALL);
+  }
 
-    @Override
-    public void disableDebug() {
-        if (originLevel != null) {
-            logger.setLevel(originLevel);
-        }
+  @Override
+  public void disableDebug() {
+    if (originLevel != null) {
+      logger.setLevel(originLevel);
     }
+  }
 }

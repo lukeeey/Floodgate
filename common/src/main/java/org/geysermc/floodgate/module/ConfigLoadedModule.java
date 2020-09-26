@@ -34,18 +34,18 @@ import org.geysermc.floodgate.config.ProxyFloodgateConfig;
 
 @RequiredArgsConstructor
 public final class ConfigLoadedModule extends AbstractModule {
-    private final FloodgateConfig config;
+  private final FloodgateConfig config;
 
-    @Override
-    protected void configure() {
-        if (config instanceof ProxyFloodgateConfig) {
-            bind(ProxyFloodgateConfig.class).toInstance((ProxyFloodgateConfig) config);
-        }
+  @Override
+  protected void configure() {
+    if (config instanceof ProxyFloodgateConfig) {
+      bind(ProxyFloodgateConfig.class).toInstance((ProxyFloodgateConfig) config);
     }
+  }
 
-    @Provides
-    @Singleton
-    public FloodgateConfig floodgateConfig() {
-        return config;
-    }
+  @Provides
+  @Singleton
+  public FloodgateConfig floodgateConfig() {
+    return config;
+  }
 }

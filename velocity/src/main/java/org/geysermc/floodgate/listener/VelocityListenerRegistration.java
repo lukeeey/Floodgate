@@ -32,11 +32,11 @@ import org.geysermc.floodgate.platform.listener.ListenerRegistration;
 
 @RequiredArgsConstructor
 public final class VelocityListenerRegistration implements ListenerRegistration<Object> {
-    private final EventManager eventManager;
-    private final VelocityPlugin plugin;
+  private final EventManager eventManager;
+  private final VelocityPlugin plugin;
 
-    @Override
-    public void register(Object listener) {
-        eventManager.register(plugin, listener);
-    }
+  @Override
+  public void register(Object listener) {
+    eventManager.register(plugin, listener);
+  }
 }

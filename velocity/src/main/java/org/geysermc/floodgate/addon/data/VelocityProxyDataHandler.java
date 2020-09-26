@@ -25,10 +25,16 @@
 
 package org.geysermc.floodgate.addon.data;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.geysermc.floodgate.util.ReflectionUtils.getCastedValue;
+import static org.geysermc.floodgate.util.ReflectionUtils.getField;
+import static org.geysermc.floodgate.util.ReflectionUtils.getPrefixedClass;
+
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.util.AttributeKey;
 import io.netty.util.ReferenceCountUtil;
+import java.lang.reflect.Field;
 import lombok.RequiredArgsConstructor;
 import org.geysermc.floodgate.HandshakeHandler;
 import org.geysermc.floodgate.HandshakeHandler.HandshakeResult;
@@ -37,84 +43,79 @@ import org.geysermc.floodgate.api.logger.FloodgateLogger;
 import org.geysermc.floodgate.api.player.FloodgatePlayer;
 import org.geysermc.floodgate.config.ProxyFloodgateConfig;
 
-import java.lang.reflect.Field;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.geysermc.floodgate.util.ReflectionUtils.*;
-
 @RequiredArgsConstructor
 public final class VelocityProxyDataHandler extends SimpleChannelInboundHandler<Object> {
-    private static final Field HANDSHAKE;
-    private static final Class<?> HANDSHAKE_PACKET;
-    private static final Field HANDSHAKE_SERVER_ADDRESS;
+  private static final Field HANDSHAKE;
+  private static final Class<?> HANDSHAKE_PACKET;
+  private static final Field HANDSHAKE_SERVER_ADDRESS;
 
-    private final ProxyFloodgateConfig config;
-    private final ProxyFloodgateApi api;
-    private final HandshakeHandler handshakeHandler;
+  static {
+    Class<?> initialInboundConnection =
+        getPrefixedClass("connection.client.InitialInboundConnection");
+    checkNotNull(initialInboundConnection, "InitialInboundConnection class cannot be null");
 
-    private final AttributeKey<FloodgatePlayer> playerAttribute;
-    private final AttributeKey<String> kickMessageAttribute;
+    HANDSHAKE = getField(initialInboundConnection, "handshake");
+    checkNotNull(HANDSHAKE, "Handshake field cannot be null");
 
-    private final FloodgateLogger logger;
+    HANDSHAKE_PACKET = getPrefixedClass("protocol.packet.Handshake");
+    checkNotNull(HANDSHAKE_PACKET, "Handshake packet class cannot be null");
 
-    private boolean done;
+    HANDSHAKE_SERVER_ADDRESS = getField(HANDSHAKE_PACKET, "serverAddress");
+    checkNotNull(HANDSHAKE_SERVER_ADDRESS, "Address field of the Handshake packet cannot be null");
+  }
 
-    @Override
-    protected void channelRead0(ChannelHandlerContext ctx, Object msg) {
-        ReferenceCountUtil.retain(msg);
-        // we're only interested in the Handshake packet
-        if (done || !HANDSHAKE_PACKET.isInstance(msg)) {
-            ctx.fireChannelRead(msg);
-            done = true;
-            return;
-        }
+  private final ProxyFloodgateConfig config;
+  private final ProxyFloodgateApi api;
+  private final HandshakeHandler handshakeHandler;
+  private final AttributeKey<FloodgatePlayer> playerAttribute;
+  private final AttributeKey<String> kickMessageAttribute;
+  private final FloodgateLogger logger;
+  private boolean done;
 
-        handleClientToProxy(ctx, msg);
-        ctx.fireChannelRead(msg);
-        done = true;
+  @Override
+  protected void channelRead0(ChannelHandlerContext ctx, Object msg) {
+    ReferenceCountUtil.retain(msg);
+    // we're only interested in the Handshake packet
+    if (done || !HANDSHAKE_PACKET.isInstance(msg)) {
+      ctx.fireChannelRead(msg);
+      done = true;
+      return;
     }
 
-    private void handleClientToProxy(ChannelHandlerContext ctx, Object packet) {
-        String address = getCastedValue(packet, HANDSHAKE_SERVER_ADDRESS);
+    handleClientToProxy(ctx, msg);
+    ctx.fireChannelRead(msg);
+    done = true;
+  }
 
-        HandshakeResult result = handshakeHandler.handle(address);
-        switch (result.getResultType()) {
-            case SUCCESS:
-                break;
-            case EXCEPTION:
-                ctx.channel().attr(kickMessageAttribute).set(config.getMessages().getInvalidKey());
-            case INVALID_DATA_LENGTH:
-                ctx.channel().attr(kickMessageAttribute)
-                        .set(config.getMessages().getInvalidArgumentsLength());
-                return;
-            default:
-                return;
-        }
+  private void handleClientToProxy(ChannelHandlerContext ctx, Object packet) {
+    String address = getCastedValue(packet, HANDSHAKE_SERVER_ADDRESS);
 
-        FloodgatePlayer player = result.getFloodgatePlayer();
-
-        // we can't rely on Velocity when it comes to kicking the old players, so with this
-        // system we only have to check if the connection (which is already closed at that time)
-        // has the FloodgatePlayer attribute
-        ctx.channel().attr(playerAttribute).set(player);
-
-        api.addEncryptedData(player.getCorrectUniqueId(), result.getHandshakeData()[1]);
-        logger.info("Floodgate player who is logged in as {} {} joined",
-                player.getCorrectUsername(), player.getCorrectUniqueId());
+    HandshakeResult result = handshakeHandler.handle(address);
+    switch (result.getResultType()) {
+      case SUCCESS:
+        break;
+      case EXCEPTION:
+        ctx.channel().attr(kickMessageAttribute).set(config.getMessages().getInvalidKey());
+      case INVALID_DATA_LENGTH:
+        ctx.channel()
+            .attr(kickMessageAttribute)
+            .set(config.getMessages().getInvalidArgumentsLength());
+        return;
+      default:
+        return;
     }
 
-    static {
-        Class<?> initialInboundConnection =
-                getPrefixedClass("connection.client.InitialInboundConnection");
-        checkNotNull(initialInboundConnection, "InitialInboundConnection class cannot be null");
+    FloodgatePlayer player = result.getFloodgatePlayer();
 
-        HANDSHAKE = getField(initialInboundConnection, "handshake");
-        checkNotNull(HANDSHAKE, "Handshake field cannot be null");
+    // we can't rely on Velocity when it comes to kicking the old players, so with this
+    // system we only have to check if the connection (which is already closed at that time)
+    // has the FloodgatePlayer attribute
+    ctx.channel().attr(playerAttribute).set(player);
 
-        HANDSHAKE_PACKET = getPrefixedClass("protocol.packet.Handshake");
-        checkNotNull(HANDSHAKE_PACKET, "Handshake packet class cannot be null");
-
-        HANDSHAKE_SERVER_ADDRESS = getField(HANDSHAKE_PACKET, "serverAddress");
-        checkNotNull(HANDSHAKE_SERVER_ADDRESS, "Address field of the Handshake packet cannot be null");
-    }
+    api.addEncryptedData(player.getCorrectUniqueId(), result.getHandshakeData()[1]);
+    logger.info(
+        "Floodgate player who is logged in as {} {} joined",
+        player.getCorrectUsername(),
+        player.getCorrectUniqueId());
+  }
 }

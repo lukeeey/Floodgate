@@ -25,43 +25,44 @@
 
 package org.geysermc.floodgate.api;
 
-import lombok.RequiredArgsConstructor;
-import org.geysermc.floodgate.crypto.FloodgateCipher;
-import org.geysermc.floodgate.util.BedrockData;
-
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import org.geysermc.floodgate.crypto.FloodgateCipher;
+import org.geysermc.floodgate.util.BedrockData;
 
 @RequiredArgsConstructor
 public final class ProxyFloodgateApi extends SimpleFloodgateApi {
-    private final Map<UUID, String> encryptedData = new HashMap<>();
-    private final FloodgateCipher cipher;
+  private final Map<UUID, String> encryptedData = new HashMap<>();
+  private final FloodgateCipher cipher;
 
-    public String getEncryptedData(UUID uuid) {
-        return encryptedData.get(uuid);
+  public String getEncryptedData(UUID uuid) {
+    return encryptedData.get(uuid);
+  }
+
+  public void addEncryptedData(UUID uuid, String encryptedData) {
+    this.encryptedData.put(uuid, encryptedData); // just override already existing data I guess
+  }
+
+  public void removeEncryptedData(UUID uuid) {
+    encryptedData.remove(uuid);
+  }
+
+  public void updateEncryptedData(UUID uuid, BedrockData bedrockData) {
+    try {
+      byte[] encryptedData = cipher.encryptFromString(bedrockData.toString());
+      encryptedData = Base64.getEncoder().encode(encryptedData);
+      // todo maybe bake Base64 support into it?
+
+      addEncryptedData(uuid, new String(encryptedData, StandardCharsets.UTF_8));
+    } catch (Exception exception) {
+      throw new IllegalStateException(
+          "We failed to update the BedrockData, "
+              + "but we can't continue without the updated version!",
+          exception);
     }
-
-    public void addEncryptedData(UUID uuid, String encryptedData) {
-        this.encryptedData.put(uuid, encryptedData); // just override already existing data I guess
-    }
-
-    public void removeEncryptedData(UUID uuid) {
-        encryptedData.remove(uuid);
-    }
-
-    public void updateEncryptedData(UUID uuid, BedrockData bedrockData) {
-        try {
-            byte[] encryptedData = cipher.encryptFromString(bedrockData.toString());
-            encryptedData = Base64.getEncoder().encode(encryptedData);
-            //todo maybe bake Base64 support into it?
-
-            addEncryptedData(uuid, new String(encryptedData, StandardCharsets.UTF_8));
-        } catch (Exception exception) {
-            throw new IllegalStateException("We failed to update the BedrockData, " +
-                    "but we can't continue without the updated version!", exception);
-        }
-    }
+  }
 }

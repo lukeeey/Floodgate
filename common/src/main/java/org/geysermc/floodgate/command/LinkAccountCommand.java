@@ -26,6 +26,10 @@
 package org.geysermc.floodgate.command;
 
 import com.google.inject.Inject;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
+import java.util.UUID;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.geysermc.floodgate.api.FloodgateApi;
@@ -36,136 +40,132 @@ import org.geysermc.floodgate.platform.command.Command;
 import org.geysermc.floodgate.platform.command.CommandMessage;
 import org.geysermc.floodgate.platform.command.CommandUtil;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
-import java.util.UUID;
-
 @NoArgsConstructor
 public final class LinkAccountCommand implements Command {
-    private final Map<String, LinkRequest> activeLinkRequests = new HashMap<>();
+  private final Map<String, LinkRequest> activeLinkRequests = new HashMap<>();
 
-    @Inject private FloodgateApi api;
-    @Inject private CommandUtil commandUtil;
+  @Inject private FloodgateApi api;
+  @Inject private CommandUtil commandUtil;
 
-    @Override
-    public void execute(Object player, UUID uuid, String username, String locale, String[] args) {
-        PlayerLink link = api.getPlayerLink();
-        if (!link.isEnabledAndAllowed()) {
-            sendMessage(player, locale, Message.LINK_REQUEST_DISABLED);
-            return;
-        }
+  @Override
+  public void execute(Object player, UUID uuid, String username, String locale, String[] args) {
+    PlayerLink link = api.getPlayerLink();
+    if (!link.isEnabledAndAllowed()) {
+      sendMessage(player, locale, Message.LINK_REQUEST_DISABLED);
+      return;
+    }
 
-        link.isLinkedPlayer(uuid).whenComplete((linked, throwable) -> {
-            if (throwable != null) {
+    link.isLinkedPlayer(uuid)
+        .whenComplete(
+            (linked, throwable) -> {
+              if (throwable != null) {
                 sendMessage(player, locale, CommonCommandMessage.IS_LINKED_ERROR);
                 return;
-            }
+              }
 
-            if (linked) {
+              if (linked) {
                 sendMessage(player, locale, Message.ALREADY_LINKED);
                 return;
-            }
+              }
 
-            // when the player is a Java player
-            if (!api.isBedrockPlayer(uuid)) {
+              // when the player is a Java player
+              if (!api.isBedrockPlayer(uuid)) {
                 if (args.length != 1) {
-                    sendMessage(player, locale, Message.JAVA_USAGE);
-                    return;
+                  sendMessage(player, locale, Message.JAVA_USAGE);
+                  return;
                 }
 
                 String code = String.format("%04d", new Random().nextInt(10000));
                 String bedrockUsername = args[0];
 
                 LinkRequest linkRequest =
-                        new LinkRequestImpl(username, uuid, code, bedrockUsername);
+                    new LinkRequestImpl(username, uuid, code, bedrockUsername);
 
                 activeLinkRequests.put(username, linkRequest);
                 sendMessage(
-                        player, locale, Message.LINK_REQUEST_CREATED,
-                        bedrockUsername, username, code
-                );
+                    player, locale, Message.LINK_REQUEST_CREATED, bedrockUsername, username, code);
                 return;
-            }
+              }
 
-            // when the player is a Bedrock player
+              // when the player is a Bedrock player
 
-            if (args.length != 2) {
+              if (args.length != 2) {
                 sendMessage(player, locale, Message.BEDROCK_USAGE);
                 return;
-            }
+              }
 
-            String javaUsername = args[0];
-            String code = args[1];
-            LinkRequest request = activeLinkRequests.getOrDefault(javaUsername, null);
-            if (request == null || !request.isRequestedPlayer(api.getPlayer(uuid))) {
+              String javaUsername = args[0];
+              String code = args[1];
+              LinkRequest request = activeLinkRequests.getOrDefault(javaUsername, null);
+              if (request == null || !request.isRequestedPlayer(api.getPlayer(uuid))) {
                 sendMessage(player, locale, Message.NO_LINK_REQUESTED);
                 return;
-            }
+              }
 
-            if (!request.getLinkCode().equals(code)) {
+              if (!request.getLinkCode().equals(code)) {
                 sendMessage(player, locale, Message.INVALID_CODE);
                 return;
-            }
+              }
 
-            // Delete the request, whether it has expired or is successful
-            activeLinkRequests.remove(javaUsername);
-            if (request.isExpired(link.getVerifyLinkTimeout())) {
+              // Delete the request, whether it has expired or is successful
+              activeLinkRequests.remove(javaUsername);
+              if (request.isExpired(link.getVerifyLinkTimeout())) {
                 sendMessage(player, locale, Message.LINK_REQUEST_EXPIRED);
                 return;
-            }
+              }
 
-            link.linkPlayer(uuid, request.getJavaUniqueId(), request.getJavaUsername())
-                    .whenComplete((aVoid, error) -> {
+              link.linkPlayer(uuid, request.getJavaUniqueId(), request.getJavaUsername())
+                  .whenComplete(
+                      (aVoid, error) -> {
                         if (error != null) {
-                            sendMessage(player, locale, Message.LINK_REQUEST_ERROR);
-                            return;
+                          sendMessage(player, locale, Message.LINK_REQUEST_ERROR);
+                          return;
                         }
                         commandUtil.kickPlayer(
-                                player, locale, Message.LINK_REQUEST_COMPLETED,
-                                request.getJavaUsername()
-                        );
-                    });
-        });
+                            player,
+                            locale,
+                            Message.LINK_REQUEST_COMPLETED,
+                            request.getJavaUsername());
+                      });
+            });
+  }
+
+  @Override
+  public String getName() {
+    return "linkaccount";
+  }
+
+  @Override
+  public String getPermission() {
+    return "floodgate.linkaccount";
+  }
+
+  @Override
+  public boolean isRequirePlayer() {
+    return true;
+  }
+
+  private void sendMessage(Object player, String locale, CommandMessage message, Object... args) {
+    commandUtil.sendMessage(player, locale, message, args);
+  }
+
+  public enum Message implements CommandMessage {
+    ALREADY_LINKED("floodgate.command.link_account.already_linked"),
+    JAVA_USAGE("floodgate.command.link_account.java_usage"),
+    LINK_REQUEST_CREATED("floodgate.command.link_account.link_request_created"),
+    BEDROCK_USAGE("floodgate.command.link_account.bedrock_usage"),
+    LINK_REQUEST_EXPIRED("floodgate.command.link_account.link_request_expired"),
+    LINK_REQUEST_COMPLETED("floodgate.command.link_account.link_request_completed"),
+    // TODO this also used to have another message
+    LINK_REQUEST_ERROR("floodgate.command.link_request.error"),
+    INVALID_CODE("floodgate.command.link_account.invalid_code"),
+    NO_LINK_REQUESTED("floodgate.command.link_account.no_link_requested"),
+    LINK_REQUEST_DISABLED("floodgate.commands.linking_disabled");
+
+    @Getter private final String message;
+
+    Message(String message) {
+      this.message = message;
     }
-
-    @Override
-    public String getName() {
-        return "linkaccount";
-    }
-
-    @Override
-    public String getPermission() {
-        return "floodgate.linkaccount";
-    }
-
-    @Override
-    public boolean isRequirePlayer() {
-        return true;
-    }
-
-    private void sendMessage(Object player, String locale, CommandMessage message, Object... args) {
-        commandUtil.sendMessage(player, locale, message, args);
-    }
-
-    public enum Message implements CommandMessage {
-        ALREADY_LINKED("floodgate.command.link_account.already_linked"),
-        JAVA_USAGE("floodgate.command.link_account.java_usage"),
-        LINK_REQUEST_CREATED("floodgate.command.link_account.link_request_created"),
-        BEDROCK_USAGE("floodgate.command.link_account.bedrock_usage"),
-        LINK_REQUEST_EXPIRED("floodgate.command.link_account.link_request_expired"),
-        LINK_REQUEST_COMPLETED("floodgate.command.link_account.link_request_completed"),
-        // TODO this also used to have another message
-        LINK_REQUEST_ERROR("floodgate.command.link_request.error"),
-        INVALID_CODE("floodgate.command.link_account.invalid_code"),
-        NO_LINK_REQUESTED("floodgate.command.link_account.no_link_requested"),
-        LINK_REQUEST_DISABLED("floodgate.commands.linking_disabled");
-
-        @Getter
-        private final String message;
-
-        Message(String message) {
-            this.message = message;
-        }
-    }
+  }
 }

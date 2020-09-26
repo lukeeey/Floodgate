@@ -26,11 +26,6 @@
 package org.geysermc.floodgate.util;
 
 import com.google.inject.Inject;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import org.geysermc.floodgate.api.logger.FloodgateLogger;
-import org.geysermc.floodgate.config.FloodgateConfig;
-
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
@@ -39,158 +34,158 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import org.geysermc.floodgate.api.logger.FloodgateLogger;
+import org.geysermc.floodgate.config.FloodgateConfig;
 
-/**
- * Manages translations for strings in Floodgate
- */
+/** Manages translations for strings in Floodgate */
 @RequiredArgsConstructor
 public class LanguageManager {
-    private final Map<String, Properties> LOCALE_MAPPINGS = new HashMap<>();
+  private final Map<String, Properties> LOCALE_MAPPINGS = new HashMap<>();
 
-    private final FloodgateLogger logger;
+  private final FloodgateLogger logger;
 
-    /**
-     * The locale used in console and as a fallback
-     */
-    @Getter
-    private String defaultLocale;
+  /** The locale used in console and as a fallback */
+  @Getter private String defaultLocale;
 
-    /**
-     * Loads the log's locale file once Floodgate loads the config
-     *
-     * @param config the Floodgate config
-     */
-    @Inject
-    public void init(FloodgateConfig config) {
-        loadLocale("en_US"); // Fallback
+  /**
+   * Cleans up and formats a locale string
+   *
+   * @param locale The locale to format
+   * @return The formatted locale
+   */
+  private static String formatLocale(String locale) {
+    try {
+      String[] parts = locale.toLowerCase().split("_");
+      return parts[0] + "_" + parts[1].toUpperCase();
+    } catch (Exception e) {
+      return locale;
+    }
+  }
 
-        defaultLocale = formatLocale(config.getDefaultLocale());
+  /**
+   * Loads the log's locale file once Floodgate loads the config
+   *
+   * @param config the Floodgate config
+   */
+  @Inject
+  public void init(FloodgateConfig config) {
+    loadLocale("en_US"); // Fallback
 
-        if (isValidLanguage(defaultLocale)) {
-            loadLocale(defaultLocale);
-            return;
-        }
+    defaultLocale = formatLocale(config.getDefaultLocale());
 
-        String systemLocale = formatLocale(
-                Locale.getDefault().getLanguage() + "_" +
-                Locale.getDefault().getCountry()
-        );
-
-        if (isValidLanguage(systemLocale)) {
-            loadLocale(systemLocale);
-            defaultLocale = systemLocale;
-            return;
-        }
-
-        defaultLocale = "en_US";
+    if (isValidLanguage(defaultLocale)) {
+      loadLocale(defaultLocale);
+      return;
     }
 
-    /**
-     * Loads a Floodgate locale from resources; if the file doesn't exist it just logs a warning
-     *
-     * @param locale Locale to load
-     */
-    public void loadLocale(String locale) {
-        locale = formatLocale(locale);
+    String systemLocale =
+        formatLocale(Locale.getDefault().getLanguage() + "_" + Locale.getDefault().getCountry());
 
-        // just return if the locale has been loaded already
-        if (LOCALE_MAPPINGS.containsKey(locale)) {
-            return;
-        }
-
-        InputStream localeStream = LanguageManager.class.getClassLoader().getResourceAsStream(
-                "languages/texts/" + locale + ".properties");
-
-        // Load the locale
-        if (localeStream != null) {
-            Properties localeProp = new Properties();
-            try {
-                localeProp.load(new InputStreamReader(localeStream, StandardCharsets.UTF_8));
-            } catch (Exception e) {
-                throw new AssertionError("Failed to load Floodgate locale", e);
-            }
-
-            // Insert the locale into the mappings
-            LOCALE_MAPPINGS.put(locale, localeProp);
-        } else {
-            logger.warn("Missing locale file: " + locale);
-        }
+    if (isValidLanguage(systemLocale)) {
+      loadLocale(systemLocale);
+      defaultLocale = systemLocale;
+      return;
     }
 
-    /**
-     * Get a formatted language string with the default locale for Floodgate
-     *
-     * @param key Language string to translate
-     * @param values Values to put into the string
-     * @return Translated string or the original message if it was not found in the given locale
-     */
-    public String getLogString(String key, Object... values) {
-        return getString(key, defaultLocale, values);
+    defaultLocale = "en_US";
+  }
+
+  /**
+   * Loads a Floodgate locale from resources; if the file doesn't exist it just logs a warning
+   *
+   * @param locale Locale to load
+   */
+  public void loadLocale(String locale) {
+    locale = formatLocale(locale);
+
+    // just return if the locale has been loaded already
+    if (LOCALE_MAPPINGS.containsKey(locale)) {
+      return;
     }
 
-    /**
-     * Get a formatted language string with the given locale for Floodgate
-     *
-     * @param key Language string to translate
-     * @param locale Locale to translate to
-     * @param values Values to put into the string
-     * @return Translated string or the original message if it was not found in the given locale
-     */
-    public String getString(String key, String locale, Object... values) {
-        locale = formatLocale(locale);
+    InputStream localeStream =
+        LanguageManager.class
+            .getClassLoader()
+            .getResourceAsStream("languages/texts/" + locale + ".properties");
 
-        Properties properties = LOCALE_MAPPINGS.get(locale);
-        String formatString = properties.getProperty(key);
+    // Load the locale
+    if (localeStream != null) {
+      Properties localeProp = new Properties();
+      try {
+        localeProp.load(new InputStreamReader(localeStream, StandardCharsets.UTF_8));
+      } catch (Exception e) {
+        throw new AssertionError("Failed to load Floodgate locale", e);
+      }
 
-        // Try and get the key from the default locale
-        if (formatString == null) {
-            properties = LOCALE_MAPPINGS.get(defaultLocale);
-            formatString = properties.getProperty(key);
-        }
+      // Insert the locale into the mappings
+      LOCALE_MAPPINGS.put(locale, localeProp);
+    } else {
+      logger.warn("Missing locale file: " + locale);
+    }
+  }
 
-        // Try and get the key from en_US (this should only ever happen in development)
-        if (formatString == null) {
-            properties = LOCALE_MAPPINGS.get("en_US");
-            formatString = properties.getProperty(key);
-        }
+  /**
+   * Get a formatted language string with the default locale for Floodgate
+   *
+   * @param key Language string to translate
+   * @param values Values to put into the string
+   * @return Translated string or the original message if it was not found in the given locale
+   */
+  public String getLogString(String key, Object... values) {
+    return getString(key, defaultLocale, values);
+  }
 
-        // Final fallback
-        if (formatString == null) {
-            formatString = key;
-        }
+  /**
+   * Get a formatted language string with the given locale for Floodgate
+   *
+   * @param key Language string to translate
+   * @param locale Locale to translate to
+   * @param values Values to put into the string
+   * @return Translated string or the original message if it was not found in the given locale
+   */
+  public String getString(String key, String locale, Object... values) {
+    locale = formatLocale(locale);
 
-        return MessageFormat.format(formatString.replace("'", "''").replace("&", "\u00a7"), values);
+    Properties properties = LOCALE_MAPPINGS.get(locale);
+    String formatString = properties.getProperty(key);
+
+    // Try and get the key from the default locale
+    if (formatString == null) {
+      properties = LOCALE_MAPPINGS.get(defaultLocale);
+      formatString = properties.getProperty(key);
     }
 
-    /**
-     * Cleans up and formats a locale string
-     *
-     * @param locale The locale to format
-     * @return The formatted locale
-     */
-    private static String formatLocale(String locale) {
-        try {
-            String[] parts = locale.toLowerCase().split("_");
-            return parts[0] + "_" + parts[1].toUpperCase();
-        } catch (Exception e) {
-            return locale;
-        }
+    // Try and get the key from en_US (this should only ever happen in development)
+    if (formatString == null) {
+      properties = LOCALE_MAPPINGS.get("en_US");
+      formatString = properties.getProperty(key);
     }
 
-    /**
-     * Ensures that the given locale is supported by Floodgate
-     * @param locale the locale to validate
-     * @return true if the given locale is supported by Floodgate
-     */
-    private boolean isValidLanguage(String locale) {
-        if (locale == null) {
-            return false;
-        }
-
-        if (LanguageManager.class.getResource("/languages/texts/" + locale + ".properties") == null) {
-            logger.warn(locale + " is not a supported Floodgate language.");
-            return false;
-        }
-        return true;
+    // Final fallback
+    if (formatString == null) {
+      formatString = key;
     }
+
+    return MessageFormat.format(formatString.replace("'", "''").replace("&", "\u00a7"), values);
+  }
+
+  /**
+   * Ensures that the given locale is supported by Floodgate
+   *
+   * @param locale the locale to validate
+   * @return true if the given locale is supported by Floodgate
+   */
+  private boolean isValidLanguage(String locale) {
+    if (locale == null) {
+      return false;
+    }
+
+    if (LanguageManager.class.getResource("/languages/texts/" + locale + ".properties") == null) {
+      logger.warn(locale + " is not a supported Floodgate language.");
+      return false;
+    }
+    return true;
+  }
 }

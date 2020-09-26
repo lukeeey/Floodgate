@@ -25,33 +25,32 @@
 
 package org.geysermc.floodgate.api;
 
+import java.util.UUID;
 import lombok.Getter;
 import org.geysermc.floodgate.api.inject.PlatformInjector;
 import org.geysermc.floodgate.api.link.PlayerLink;
 
-import java.util.UUID;
-
 public final class InstanceHolder {
-    @Getter private static FloodgateApi instance;
-    @Getter private static PlayerLink playerLink;
-    @Getter private static PlatformInjector injector;
-    private static UUID key;
+  @Getter private static FloodgateApi instance;
+  @Getter private static PlayerLink playerLink;
+  @Getter private static PlatformInjector injector;
+  private static UUID key;
 
-    public static boolean setInstance(FloodgateApi floodgateApi, PlayerLink link,
-                                      PlatformInjector platformInjector, UUID key) {
-        if (instance == null) {
-            InstanceHolder.key = key;
-        } else if (!InstanceHolder.key.equals(key)) {
-            return false;
-        }
-        instance = floodgateApi;
-        playerLink = link;
-        injector = platformInjector;
-        return true;
+  public static boolean setInstance(
+      FloodgateApi floodgateApi, PlayerLink link, PlatformInjector platformInjector, UUID key) {
+    if (instance == null) {
+      InstanceHolder.key = key;
+    } else if (!InstanceHolder.key.equals(key)) {
+      return false;
     }
+    instance = floodgateApi;
+    playerLink = link;
+    injector = platformInjector;
+    return true;
+  }
 
-    @SuppressWarnings("unchecked")
-    public static <T extends FloodgateApi> T castApi(Class<T> cast) {
-        return (T) instance;
-    }
+  @SuppressWarnings("unchecked")
+  public static <T extends FloodgateApi> T castApi(Class<T> cast) {
+    return (T) instance;
+  }
 }

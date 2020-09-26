@@ -25,57 +25,52 @@
 
 package org.geysermc.floodgate.api;
 
+import java.util.UUID;
 import org.geysermc.floodgate.api.link.PlayerLink;
 import org.geysermc.floodgate.api.player.FloodgatePlayer;
 
-import java.util.UUID;
-
 public interface FloodgateApi {
-    /**
-     * Method to determine if the given <b>online</b> player is a bedrock player
-     *
-     * @param uuid The uuid of the <b>online</b> player
-     * @return true if the given <b>online</b> player is a Bedrock player
-     */
-    boolean isBedrockPlayer(UUID uuid);
+  /** Returns the Floodgate API instance. */
+  static FloodgateApi getInstance() {
+    return InstanceHolder.getInstance();
+  }
 
-    /**
-     * Get info about the given Bedrock player
-     *
-     * @param uuid the uuid of the <b>online</b> Bedrock player
-     * @return FloodgatePlayer if the given uuid is a Bedrock player
-     */
-    FloodgatePlayer getPlayer(UUID uuid);
+  /**
+   * Method to determine if the given <b>online</b> player is a bedrock player
+   *
+   * @param uuid The uuid of the <b>online</b> player
+   * @return true if the given <b>online</b> player is a Bedrock player
+   */
+  boolean isBedrockPlayer(UUID uuid);
 
-    /**
-     * Create a valid Java player uuid of a xuid
-     *
-     * @param xuid the xuid that should be converted
-     * @return the created uuid based of the given xuid
-     */
-    UUID createJavaPlayerId(long xuid);
+  /**
+   * Get info about the given Bedrock player
+   *
+   * @param uuid the uuid of the <b>online</b> Bedrock player
+   * @return FloodgatePlayer if the given uuid is a Bedrock player
+   */
+  FloodgatePlayer getPlayer(UUID uuid);
 
-    /**
-     * Checks if the uuid of the player has the {@link #createJavaPlayerId(long)} format.
-     * This method can't validate a linked player uuid, since that doesn't equal the format.
-     * Use {@link #isBedrockPlayer(UUID)} if you want to include linked accounts.
-     *
-     * @param uuid the uuid to check
-     * @return true if the given uuid has the correct format.
-     */
-    boolean isFloodgateId(UUID uuid);
+  /**
+   * Create a valid Java player uuid of a xuid
+   *
+   * @param xuid the xuid that should be converted
+   * @return the created uuid based of the given xuid
+   */
+  UUID createJavaPlayerId(long xuid);
 
-    /**
-     * Returns the instance that manages all the linking.
-     */
-    default PlayerLink getPlayerLink() {
-        return InstanceHolder.getPlayerLink();
-    }
+  /**
+   * Checks if the uuid of the player has the {@link #createJavaPlayerId(long)} format. This method
+   * can't validate a linked player uuid, since that doesn't equal the format. Use {@link
+   * #isBedrockPlayer(UUID)} if you want to include linked accounts.
+   *
+   * @param uuid the uuid to check
+   * @return true if the given uuid has the correct format.
+   */
+  boolean isFloodgateId(UUID uuid);
 
-    /**
-     * Returns the Floodgate API instance.
-     */
-    static FloodgateApi getInstance() {
-        return InstanceHolder.getInstance();
-    }
+  /** Returns the instance that manages all the linking. */
+  default PlayerLink getPlayerLink() {
+    return InstanceHolder.getPlayerLink();
+  }
 }

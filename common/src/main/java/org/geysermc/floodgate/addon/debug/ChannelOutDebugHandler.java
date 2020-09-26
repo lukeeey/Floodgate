@@ -32,21 +32,20 @@ import io.netty.handler.codec.MessageToByteEncoder;
 import org.geysermc.floodgate.api.logger.FloodgateLogger;
 
 public final class ChannelOutDebugHandler extends MessageToByteEncoder<ByteBuf> {
-    private final String direction;
-    private final FloodgateLogger logger;
+  private final String direction;
+  private final FloodgateLogger logger;
 
-    public ChannelOutDebugHandler(String implementationType, boolean player,
-                                  FloodgateLogger logger) {
-        this.direction = implementationType + (player ? " -> Player" : " -> Server");
-        this.logger = logger;
-    }
+  public ChannelOutDebugHandler(String implementationType, boolean player, FloodgateLogger logger) {
+    this.direction = implementationType + (player ? " -> Player" : " -> Server");
+    this.logger = logger;
+  }
 
-    @Override
-    protected void encode(ChannelHandlerContext ctx, ByteBuf msg, ByteBuf out) {
-        int index = msg.readerIndex();
-        logger.info("{}:\n{}", direction, ByteBufUtil.prettyHexDump(msg));
+  @Override
+  protected void encode(ChannelHandlerContext ctx, ByteBuf msg, ByteBuf out) {
+    int index = msg.readerIndex();
+    logger.info("{}:\n{}", direction, ByteBufUtil.prettyHexDump(msg));
 
-        msg.readerIndex(index);
-        out.writeBytes(msg);
-    }
+    msg.readerIndex(index);
+    out.writeBytes(msg);
+  }
 }

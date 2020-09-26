@@ -37,45 +37,42 @@ import org.geysermc.floodgate.util.LanguageManager;
 
 @RequiredArgsConstructor
 public final class SpigotCommandRegistration implements CommandRegistration {
-    private final JavaPlugin plugin;
+  private final JavaPlugin plugin;
+  private final CommandUtil commandUtil;
+  private final LanguageManager languageManager;
+
+  @Override
+  public void register(Command command) {
+    String defaultLocale = languageManager.getDefaultLocale();
+
+    plugin
+        .getCommand(command.getName())
+        .setExecutor(new SpigotCommandWrapper(commandUtil, command, defaultLocale));
+  }
+
+  @RequiredArgsConstructor
+  protected static class SpigotCommandWrapper implements CommandExecutor {
     private final CommandUtil commandUtil;
-    private final LanguageManager languageManager;
+    private final Command command;
+    private final String defaultLocale;
 
     @Override
-    public void register(Command command) {
-        String defaultLocale = languageManager.getDefaultLocale();
-
-        plugin.getCommand(command.getName()).setExecutor(
-                new SpigotCommandWrapper(commandUtil, command, defaultLocale)
-        );
-    }
-
-    @RequiredArgsConstructor
-    protected static class SpigotCommandWrapper implements CommandExecutor {
-        private final CommandUtil commandUtil;
-        private final Command command;
-        private final String defaultLocale;
-
-        @Override
-        public boolean onCommand(CommandSender source, org.bukkit.command.Command cmd,
-                                 String label, String[] args) {
-            if (!(source instanceof Player)) {
-                if (command.isRequirePlayer()) {
-                    commandUtil.sendMessage(
-                            source, defaultLocale,
-                            CommonCommandMessage.NOT_A_PLAYER
-                    );
-                    return true;
-                }
-                command.execute(source, defaultLocale, args);
-                return true;
-            }
-
-            Player player = (Player) source;
-            String locale = player.spigot().getLocale();
-
-            command.execute(source, player.getUniqueId(), source.getName(), locale, args);
-            return true;
+    public boolean onCommand(
+        CommandSender source, org.bukkit.command.Command cmd, String label, String[] args) {
+      if (!(source instanceof Player)) {
+        if (command.isRequirePlayer()) {
+          commandUtil.sendMessage(source, defaultLocale, CommonCommandMessage.NOT_A_PLAYER);
+          return true;
         }
+        command.execute(source, defaultLocale, args);
+        return true;
+      }
+
+      Player player = (Player) source;
+      String locale = player.spigot().getLocale();
+
+      command.execute(source, player.getUniqueId(), source.getName(), locale, args);
+      return true;
     }
+  }
 }

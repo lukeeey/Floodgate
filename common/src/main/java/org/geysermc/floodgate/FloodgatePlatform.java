@@ -29,6 +29,9 @@ import com.google.inject.Inject;
 import com.google.inject.Injector;
 import com.google.inject.Module;
 import com.google.inject.name.Named;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
 import org.geysermc.floodgate.api.FloodgateApi;
@@ -43,98 +46,98 @@ import org.geysermc.floodgate.module.ConfigLoadedModule;
 import org.geysermc.floodgate.module.PostInitializeModule;
 import org.geysermc.floodgate.util.LanguageManager;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.UUID;
-
 public class FloodgatePlatform {
-    private static final UUID KEY = UUID.randomUUID();
+  private static final UUID KEY = UUID.randomUUID();
 
-    private final FloodgateConfig config;
-    private final FloodgateApi api;
+  private final FloodgateConfig config;
+  private final FloodgateApi api;
 
-    private final FloodgateLogger logger;
+  private final FloodgateLogger logger;
 
-    @Getter(AccessLevel.PROTECTED)
-    private final LanguageManager languageManager;
+  @Getter(AccessLevel.PROTECTED)
+  private final LanguageManager languageManager;
 
-    private final Injector guice;
+  private final Injector guice;
 
-    @Inject
-    private PlatformInjector injector;
+  @Inject private PlatformInjector injector;
 
-    @Inject
-    public FloodgatePlatform(@Named("dataDirectory") Path dataDirectory, FloodgateApi api,
-                             ConfigLoader configLoader, PlayerLinkLoader playerLinkLoader,
-                             HandshakeHandler handshakeHandler, FloodgateLogger logger,
-                             PlatformInjector platformInjector, LanguageManager languageManager,
-                             Injector injector) {
-        this.api = api;
-        this.logger = logger;
-        this.languageManager = languageManager;
+  @Inject
+  public FloodgatePlatform(
+      @Named("dataDirectory") Path dataDirectory,
+      FloodgateApi api,
+      ConfigLoader configLoader,
+      PlayerLinkLoader playerLinkLoader,
+      HandshakeHandler handshakeHandler,
+      FloodgateLogger logger,
+      PlatformInjector platformInjector,
+      LanguageManager languageManager,
+      Injector injector) {
+    this.api = api;
+    this.logger = logger;
+    this.languageManager = languageManager;
 
-        if (!Files.isDirectory(dataDirectory)) {
-            try {
-                Files.createDirectory(dataDirectory);
-            } catch (Exception exception) {
-                logger.error("Failed to create the data folder", exception);
-                throw new RuntimeException("Failed to create the data folder");
-            }
-        }
-
-        config = configLoader.load();
-        if (config.isDebug()) {
-            logger.enableDebug();
-        }
-
-        // make the config available for other classes
-        guice = injector.createChildInjector(new ConfigLoadedModule(config));
-
-        guice.injectMembers(languageManager);
-        guice.injectMembers(playerLinkLoader);
-        guice.injectMembers(handshakeHandler);
-
-        PlayerLink link = playerLinkLoader.load();
-
-        InstanceHolder.setInstance(api, link, platformInjector, KEY);
+    if (!Files.isDirectory(dataDirectory)) {
+      try {
+        Files.createDirectory(dataDirectory);
+      } catch (Exception exception) {
+        logger.error("Failed to create the data folder", exception);
+        throw new RuntimeException("Failed to create the data folder");
+      }
     }
 
-    public boolean enable(Module... postInitializeModules) {
-        if (injector == null) {
-            logger.error("Failed to find the platform injector!");
-            return false;
-        }
-
-        try {
-            if (!injector.inject()) {
-                logger.error("Failed to inject the packet listener!");
-                return false;
-            }
-        } catch (Exception exception) {
-            logger.error("Failed to inject the packet listener!", exception);
-            return false;
-        }
-
-        guice.createChildInjector(new PostInitializeModule(postInitializeModules));
-        return true;
+    config = configLoader.load();
+    if (config.isDebug()) {
+      logger.enableDebug();
     }
 
-    public boolean disable() {
-        if (injector != null) {
-            try {
-                if (!injector.removeInjection()) {
-                    logger.error("Failed to remove the injection!");
-                }
-            } catch (Exception exception) {
-                logger.error("Failed to remove the injection!", exception);
-            }
+    // make the config available for other classes
+    guice = injector.createChildInjector(new ConfigLoadedModule(config));
+
+    guice.injectMembers(languageManager);
+    guice.injectMembers(playerLinkLoader);
+    guice.injectMembers(handshakeHandler);
+
+    PlayerLink link = playerLinkLoader.load();
+
+    InstanceHolder.setInstance(api, link, platformInjector, KEY);
+  }
+
+  public boolean enable(Module... postInitializeModules) {
+    if (injector == null) {
+      logger.error("Failed to find the platform injector!");
+      return false;
+    }
+
+    try {
+      if (!injector.inject()) {
+        logger.error("Failed to inject the packet listener!");
+        return false;
+      }
+    } catch (Exception exception) {
+      logger.error("Failed to inject the packet listener!", exception);
+      return false;
+    }
+
+    guice.createChildInjector(new PostInitializeModule(postInitializeModules));
+    return true;
+  }
+
+  public boolean disable() {
+    if (injector != null) {
+      try {
+        if (!injector.removeInjection()) {
+          logger.error("Failed to remove the injection!");
         }
-
-        api.getPlayerLink().stop();
-        return true;
+      } catch (Exception exception) {
+        logger.error("Failed to remove the injection!", exception);
+      }
     }
 
-    public boolean isProxy() {
-        return config.isProxy();
-    }
+    api.getPlayerLink().stop();
+    return true;
+  }
+
+  public boolean isProxy() {
+    return config.isProxy();
+  }
 }

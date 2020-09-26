@@ -25,6 +25,11 @@
 
 package org.geysermc.floodgate.listener;
 
+import static org.geysermc.floodgate.util.ReflectionUtils.getCastedValue;
+import static org.geysermc.floodgate.util.ReflectionUtils.getFieldOfType;
+import static org.geysermc.floodgate.util.ReflectionUtils.getPrefixedClass;
+import static org.geysermc.floodgate.util.ReflectionUtils.getValue;
+
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.inject.Inject;
@@ -40,111 +45,104 @@ import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.util.GameProfile;
 import io.netty.channel.Channel;
 import io.netty.util.AttributeKey;
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
 import net.kyori.adventure.text.TextComponent;
 import org.geysermc.floodgate.api.ProxyFloodgateApi;
 import org.geysermc.floodgate.api.logger.FloodgateLogger;
 import org.geysermc.floodgate.api.player.FloodgatePlayer;
 import org.geysermc.floodgate.util.LanguageManager;
 
-import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.concurrent.TimeUnit;
-
-import static org.geysermc.floodgate.util.ReflectionUtils.*;
-
 public final class VelocityListener {
-    private static final Field INITIAL_MINECRAFT_CONNECTION;
-    private static final Field MINECRAFT_CONNECTION;
-    private static final Field CHANNEL;
+  private static final Field INITIAL_MINECRAFT_CONNECTION;
+  private static final Field MINECRAFT_CONNECTION;
+  private static final Field CHANNEL;
 
-    @Inject private ProxyFloodgateApi api;
-    @Inject private LanguageManager languageManager;
-    @Inject private FloodgateLogger logger;
+  static {
+    Class<?> initialConnection = getPrefixedClass("connection.client.InitialInboundConnection");
 
-    @Inject
-    @Named("playerAttribute")
-    private AttributeKey<FloodgatePlayer> playerAttribute;
+    Class<?> minecraftConnection = getPrefixedClass("connection.MinecraftConnection");
+    INITIAL_MINECRAFT_CONNECTION = getFieldOfType(initialConnection, minecraftConnection);
+    Class<?> connectedPlayer = getPrefixedClass("connection.client.ConnectedPlayer");
+    MINECRAFT_CONNECTION = getFieldOfType(connectedPlayer, minecraftConnection);
+    CHANNEL = getFieldOfType(minecraftConnection, Channel.class);
+  }
 
-    @Inject
-    @Named("kickMessageAttribute")
-    private AttributeKey<String> kickMessageAttribute;
+  private final Cache<InboundConnection, FloodgatePlayer> playerCache =
+      CacheBuilder.newBuilder().maximumSize(500).expireAfterAccess(20, TimeUnit.SECONDS).build();
+  @Inject private ProxyFloodgateApi api;
+  @Inject private LanguageManager languageManager;
+  @Inject private FloodgateLogger logger;
 
-    private final Cache<InboundConnection, FloodgatePlayer> playerCache =
-            CacheBuilder.newBuilder()
-                    .maximumSize(500)
-                    .expireAfterAccess(20, TimeUnit.SECONDS)
-                    .build();
+  @Inject
+  @Named("playerAttribute")
+  private AttributeKey<FloodgatePlayer> playerAttribute;
 
-    @Subscribe(order = PostOrder.EARLY)
-    public void onPreLogin(PreLoginEvent event) {
-        FloodgatePlayer player = null;
-        String kickMessage;
-        try {
-            Object mcConnection = getValue(event.getConnection(), INITIAL_MINECRAFT_CONNECTION);
-            Channel channel = getCastedValue(mcConnection, CHANNEL);
+  @Inject
+  @Named("kickMessageAttribute")
+  private AttributeKey<String> kickMessageAttribute;
 
-            player = channel.attr(playerAttribute).get();
-            kickMessage = channel.attr(kickMessageAttribute).get();
-        } catch (Exception exception) {
-            logger.error("Failed get the FloodgatePlayer from the player's channel", exception);
-            kickMessage = "Failed to get the FloodgatePlayer from the players's Channel";
-        }
+  @Subscribe(order = PostOrder.EARLY)
+  public void onPreLogin(PreLoginEvent event) {
+    FloodgatePlayer player = null;
+    String kickMessage;
+    try {
+      Object mcConnection = getValue(event.getConnection(), INITIAL_MINECRAFT_CONNECTION);
+      Channel channel = getCastedValue(mcConnection, CHANNEL);
 
-        if (kickMessage != null) {
-            event.setResult(PreLoginEvent.PreLoginComponentResult.denied(TextComponent.of(kickMessage)));
-            return;
-        }
-
-        if (player != null) {
-            event.setResult(PreLoginEvent.PreLoginComponentResult.forceOfflineMode());
-            playerCache.put(event.getConnection(), player);
-        }
+      player = channel.attr(playerAttribute).get();
+      kickMessage = channel.attr(kickMessageAttribute).get();
+    } catch (Exception exception) {
+      logger.error("Failed get the FloodgatePlayer from the player's channel", exception);
+      kickMessage = "Failed to get the FloodgatePlayer from the players's Channel";
     }
 
-    @Subscribe(order = PostOrder.EARLY)
-    public void onGameProfileRequest(GameProfileRequestEvent event) {
-        FloodgatePlayer player = playerCache.getIfPresent(event.getConnection());
-        if (player != null) {
-            playerCache.invalidate(event.getConnection());
-            event.setGameProfile(new GameProfile(
-                    player.getCorrectUniqueId(), player.getCorrectUsername(), new ArrayList<>()));
-        }
+    if (kickMessage != null) {
+      event.setResult(PreLoginEvent.PreLoginComponentResult.denied(TextComponent.of(kickMessage)));
+      return;
     }
 
-    @Subscribe
-    public void onLogin(LoginEvent event) {
-        FloodgatePlayer player = api.getPlayer(event.getPlayer().getUniqueId());
-        if (player != null) {
-            languageManager.loadLocale(player.getLanguageCode());
-        }
+    if (player != null) {
+      event.setResult(PreLoginEvent.PreLoginComponentResult.forceOfflineMode());
+      playerCache.put(event.getConnection(), player);
     }
+  }
 
-    @Subscribe(order = PostOrder.LAST)
-    public void onDisconnect(DisconnectEvent event) {
-        Player player = event.getPlayer();
-        try {
-            Object minecraftConnection = getValue(player, MINECRAFT_CONNECTION);
-            Channel channel = getCastedValue(minecraftConnection, CHANNEL);
-            FloodgatePlayer fPlayer = channel.attr(playerAttribute).get();
-
-            if (fPlayer != null && api.removePlayer(fPlayer)) {
-                api.removeEncryptedData(event.getPlayer().getUniqueId());
-                logger.info(languageManager.getLogString(
-                        "floodgate.ingame.disconnect_name", player.getUsername()
-                ));
-            }
-        } catch (Exception exception) {
-            logger.error("Failed to remove the player", exception);
-        }
+  @Subscribe(order = PostOrder.EARLY)
+  public void onGameProfileRequest(GameProfileRequestEvent event) {
+    FloodgatePlayer player = playerCache.getIfPresent(event.getConnection());
+    if (player != null) {
+      playerCache.invalidate(event.getConnection());
+      event.setGameProfile(
+          new GameProfile(
+              player.getCorrectUniqueId(), player.getCorrectUsername(), new ArrayList<>()));
     }
+  }
 
-    static {
-        Class<?> initialConnection = getPrefixedClass("connection.client.InitialInboundConnection");
-
-        Class<?> minecraftConnection = getPrefixedClass("connection.MinecraftConnection");
-        INITIAL_MINECRAFT_CONNECTION = getFieldOfType(initialConnection, minecraftConnection);
-        Class<?> connectedPlayer = getPrefixedClass("connection.client.ConnectedPlayer");
-        MINECRAFT_CONNECTION = getFieldOfType(connectedPlayer, minecraftConnection);
-        CHANNEL = getFieldOfType(minecraftConnection, Channel.class);
+  @Subscribe
+  public void onLogin(LoginEvent event) {
+    FloodgatePlayer player = api.getPlayer(event.getPlayer().getUniqueId());
+    if (player != null) {
+      languageManager.loadLocale(player.getLanguageCode());
     }
+  }
+
+  @Subscribe(order = PostOrder.LAST)
+  public void onDisconnect(DisconnectEvent event) {
+    Player player = event.getPlayer();
+    try {
+      Object minecraftConnection = getValue(player, MINECRAFT_CONNECTION);
+      Channel channel = getCastedValue(minecraftConnection, CHANNEL);
+      FloodgatePlayer fPlayer = channel.attr(playerAttribute).get();
+
+      if (fPlayer != null && api.removePlayer(fPlayer)) {
+        api.removeEncryptedData(event.getPlayer().getUniqueId());
+        logger.info(
+            languageManager.getLogString("floodgate.ingame.disconnect_name", player.getUsername()));
+      }
+    } catch (Exception exception) {
+      logger.error("Failed to remove the player", exception);
+    }
+  }
 }

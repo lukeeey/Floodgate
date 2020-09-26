@@ -29,6 +29,7 @@ import com.google.inject.Inject;
 import com.google.inject.Injector;
 import com.google.inject.Module;
 import com.google.inject.name.Named;
+import java.nio.file.Path;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.geysermc.floodgate.api.FloodgateApi;
@@ -38,27 +39,38 @@ import org.geysermc.floodgate.config.loader.ConfigLoader;
 import org.geysermc.floodgate.link.PlayerLinkLoader;
 import org.geysermc.floodgate.util.LanguageManager;
 
-import java.nio.file.Path;
-
 public final class SpigotPlatform extends FloodgatePlatform {
-    @Inject private JavaPlugin plugin;
+  @Inject private JavaPlugin plugin;
 
-    @Inject
-    public SpigotPlatform(@Named("dataDirectory") Path dataDirectory, FloodgateApi api,
-                          ConfigLoader configLoader, PlayerLinkLoader playerLinkLoader,
-                          HandshakeHandler handshakeHandler, FloodgateLogger logger,
-                          PlatformInjector platformInjector, LanguageManager languageManager,
-                          Injector injector) {
-        super(dataDirectory, api, configLoader, playerLinkLoader, handshakeHandler,
-                logger, platformInjector, languageManager, injector);
-    }
+  @Inject
+  public SpigotPlatform(
+      @Named("dataDirectory") Path dataDirectory,
+      FloodgateApi api,
+      ConfigLoader configLoader,
+      PlayerLinkLoader playerLinkLoader,
+      HandshakeHandler handshakeHandler,
+      FloodgateLogger logger,
+      PlatformInjector platformInjector,
+      LanguageManager languageManager,
+      Injector injector) {
+    super(
+        dataDirectory,
+        api,
+        configLoader,
+        playerLinkLoader,
+        handshakeHandler,
+        logger,
+        platformInjector,
+        languageManager,
+        injector);
+  }
 
-    @Override
-    public boolean enable(Module... postInitializeModules) {
-        boolean success = super.enable(postInitializeModules);
-        if (!success) {
-            Bukkit.getPluginManager().disablePlugin(plugin);
-        }
-        return success;
+  @Override
+  public boolean enable(Module... postInitializeModules) {
+    boolean success = super.enable(postInitializeModules);
+    if (!success) {
+      Bukkit.getPluginManager().disablePlugin(plugin);
     }
+    return success;
+  }
 }
