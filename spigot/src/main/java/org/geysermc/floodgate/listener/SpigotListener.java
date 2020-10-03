@@ -26,6 +26,7 @@
 package org.geysermc.floodgate.listener;
 
 import com.google.inject.Inject;
+import java.util.UUID;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -39,46 +40,46 @@ import org.geysermc.floodgate.api.logger.FloodgateLogger;
 import org.geysermc.floodgate.api.player.FloodgatePlayer;
 import org.geysermc.floodgate.util.LanguageManager;
 
-import java.util.UUID;
-
 public final class SpigotListener implements Listener {
-    @Inject private SimpleFloodgateApi api;
-    @Inject private FloodgateLogger logger;
-    @Inject private LanguageManager languageManager;
+  @Inject private SimpleFloodgateApi api;
+  @Inject private FloodgateLogger logger;
+  @Inject private LanguageManager languageManager;
 
-    @EventHandler(priority = EventPriority.MONITOR)
-    public void onAsyncPreLogin(AsyncPlayerPreLoginEvent event) {
-        if (event.getLoginResult() != AsyncPlayerPreLoginEvent.Result.ALLOWED) {
-            api.removePlayer(event.getUniqueId(), true);
-        }
+  @EventHandler(priority = EventPriority.MONITOR)
+  public void onAsyncPreLogin(AsyncPlayerPreLoginEvent event) {
+    if (event.getLoginResult() != AsyncPlayerPreLoginEvent.Result.ALLOWED) {
+      api.removePlayer(event.getUniqueId(), true);
+    }
+  }
+
+  @EventHandler(priority = EventPriority.MONITOR)
+  public void onPlayerLogin(PlayerLoginEvent event) {
+    UUID uniqueId = event.getPlayer().getUniqueId();
+    if (event.getResult() != PlayerLoginEvent.Result.ALLOWED) {
+      api.removePlayer(uniqueId);
+      return;
     }
 
-    @EventHandler(priority = EventPriority.MONITOR)
-    public void onPlayerLogin(PlayerLoginEvent event) {
-        UUID uniqueId = event.getPlayer().getUniqueId();
-        if (event.getResult() != PlayerLoginEvent.Result.ALLOWED) {
-            api.removePlayer(uniqueId);
-            return;
-        }
-
-        // if there was another player with the same uuid online,
-        // he would've been disconnected by now
-        FloodgatePlayer player = api.getPlayer(uniqueId);
-        if (player != null) {
-            player.as(FloodgatePlayerImpl.class).setLogin(false);
-            logger.info(languageManager.getLogString("floodgate.ingame.login_name",
-                    player.getCorrectUsername(), player.getCorrectUniqueId()));
-            languageManager.loadLocale(player.getLanguageCode());
-        }
+    // if there was another player with the same uuid online,
+    // he would've been disconnected by now
+    FloodgatePlayer player = api.getPlayer(uniqueId);
+    if (player != null) {
+      player.as(FloodgatePlayerImpl.class).setLogin(false);
+      logger.info(
+          languageManager.getLogString(
+              "floodgate.ingame.login_name",
+              player.getCorrectUsername(),
+              player.getCorrectUniqueId()));
+      languageManager.loadLocale(player.getLanguageCode());
     }
+  }
 
-    @EventHandler(priority = EventPriority.MONITOR)
-    public void onPlayerQuit(PlayerQuitEvent event) {
-        Player player = event.getPlayer();
-        if (api.removePlayer(player.getUniqueId()) != null) {
-            logger.info(languageManager.getLogString(
-                    "floodgate.ingame.disconnect_name", player.getName())
-            );
-        }
+  @EventHandler(priority = EventPriority.MONITOR)
+  public void onPlayerQuit(PlayerQuitEvent event) {
+    Player player = event.getPlayer();
+    if (api.removePlayer(player.getUniqueId()) != null) {
+      logger.info(
+          languageManager.getLogString("floodgate.ingame.disconnect_name", player.getName()));
     }
+  }
 }

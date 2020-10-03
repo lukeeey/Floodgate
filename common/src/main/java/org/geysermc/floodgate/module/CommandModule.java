@@ -34,20 +34,20 @@ import org.geysermc.floodgate.platform.command.Command;
 import org.geysermc.floodgate.register.CommandRegister;
 
 public final class CommandModule extends AbstractModule {
-    @Override
-    protected void configure() {
-        bind(CommandRegister.class).asEagerSingleton();
-    }
+  @Override
+  protected void configure() {
+    bind(CommandRegister.class).asEagerSingleton();
+  }
 
-    @Singleton
-    @ProvidesIntoSet
-    public Command linkAccountCommand() {
-        return new LinkAccountCommand();
-    }
+  @Singleton
+  @ProvidesIntoSet
+  public Command linkAccountCommand() {
+    return new LinkAccountCommand();
+  }
 
-    @Singleton
-    @ProvidesIntoSet
-    public Command unlinkAccountCommand() {
-        return new UnlinkAccountCommand();
-    }
+  @Singleton
+  @ProvidesIntoSet
+  public Command unlinkAccountCommand() {
+    return new UnlinkAccountCommand();
+  }
 }

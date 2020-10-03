@@ -34,32 +34,30 @@ import org.geysermc.floodgate.platform.command.CommandUtil;
 
 @RequiredArgsConstructor
 public final class VelocityCommandUtil implements CommandUtil {
-    private final FloodgateLogger logger;
-    private final LanguageManager manager;
+  private final FloodgateLogger logger;
+  private final LanguageManager manager;
 
-    @Override
-    public void sendMessage(Object player, String locale, CommandMessage message, Object... args) {
-        cast(player).sendMessage(translateAndTransform(locale, message, args));
-    }
+  @Override
+  public void sendMessage(Object player, String locale, CommandMessage message, Object... args) {
+    cast(player).sendMessage(translateAndTransform(locale, message, args));
+  }
 
-    @Override
-    public void kickPlayer(Object player, String locale, CommandMessage message, Object... args) {
-        cast(player).disconnect(translateAndTransform(locale, message, args));
-    }
+  @Override
+  public void kickPlayer(Object player, String locale, CommandMessage message, Object... args) {
+    cast(player).disconnect(translateAndTransform(locale, message, args));
+  }
 
-    public TextComponent translateAndTransform(String locale, CommandMessage message,
-                                               Object... args) {
-        return TextComponent.of(manager.getString(
-                message.getMessage(), locale, args
-        ));
-    }
+  public TextComponent translateAndTransform(
+      String locale, CommandMessage message, Object... args) {
+    return TextComponent.of(manager.getString(message.getMessage(), locale, args));
+  }
 
-    protected Player cast(Object instance) {
-        try {
-            return (Player) instance;
-        } catch (ClassCastException exception) {
-            logger.error("Failed to cast {} to Player", instance.getClass().getName());
-            throw exception;
-        }
+  protected Player cast(Object instance) {
+    try {
+      return (Player) instance;
+    } catch (ClassCastException exception) {
+      logger.error("Failed to cast {} to Player", instance.getClass().getName());
+      throw exception;
     }
+  }
 }

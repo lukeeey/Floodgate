@@ -32,20 +32,19 @@ import io.netty.channel.SimpleChannelInboundHandler;
 import org.geysermc.floodgate.api.logger.FloodgateLogger;
 
 public final class ChannelInDebugHandler extends SimpleChannelInboundHandler<ByteBuf> {
-    private final String message;
-    private final FloodgateLogger logger;
+  private final String message;
+  private final FloodgateLogger logger;
 
-    public ChannelInDebugHandler(FloodgateLogger logger, String implementationType,
-                                 boolean player) {
-        this.logger = logger;
-        this.message = (player ? "Player ->" : "Server ->") + ' ' + implementationType;
-    }
+  public ChannelInDebugHandler(String implementationType, boolean server, FloodgateLogger logger) {
+    this.message = (server ? "Server ->" : "Player ->") + ' ' + implementationType;
+    this.logger = logger;
+  }
 
-    @Override
-    protected void channelRead0(ChannelHandlerContext ctx, ByteBuf msg) {
-        int index = msg.readerIndex();
-        logger.info("{}:\n{}", message, ByteBufUtil.prettyHexDump(msg));
-        msg.readerIndex(index);
-        ctx.fireChannelRead(msg.retain());
-    }
+  @Override
+  protected void channelRead0(ChannelHandlerContext ctx, ByteBuf msg) {
+    int index = msg.readerIndex();
+    logger.info("{}:\n{}", message, ByteBufUtil.prettyHexDump(msg));
+    msg.readerIndex(index);
+    ctx.fireChannelRead(msg.retain());
+  }
 }

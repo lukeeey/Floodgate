@@ -25,65 +25,57 @@
 
 package org.geysermc.floodgate.command;
 
+import java.util.Locale;
 import lombok.RequiredArgsConstructor;
 import net.md_5.bungee.api.CommandSender;
-import net.md_5.bungee.api.ProxyServer;
 import net.md_5.bungee.api.connection.ProxiedPlayer;
 import org.geysermc.floodgate.BungeePlugin;
 import org.geysermc.floodgate.platform.command.Command;
 import org.geysermc.floodgate.platform.command.CommandRegistration;
 import org.geysermc.floodgate.platform.command.CommandUtil;
-import org.geysermc.floodgate.util.LanguageManager;
-
-import java.util.Locale;
 
 @RequiredArgsConstructor
 public final class BungeeCommandRegistration implements CommandRegistration {
-    private final BungeePlugin plugin;
+  private final BungeePlugin plugin;
+  private final CommandUtil commandUtil;
+  private final String defaultLocale;
+
+  @Override
+  public void register(Command command) {
+    BungeeCommandWrapper commandWrapper =
+        new BungeeCommandWrapper(command, commandUtil, defaultLocale);
+
+    plugin.getProxy().getPluginManager().registerCommand(plugin, commandWrapper);
+  }
+
+  protected static class BungeeCommandWrapper extends net.md_5.bungee.api.plugin.Command {
+    private final Command command;
     private final CommandUtil commandUtil;
-    private final LanguageManager languageManager;
+    private final String defaultLocale;
+
+    public BungeeCommandWrapper(Command command, CommandUtil commandUtil, String defaultLocale) {
+      super(command.getName());
+      this.command = command;
+      this.commandUtil = commandUtil;
+      this.defaultLocale = defaultLocale;
+    }
 
     @Override
-    public void register(Command command) {
-        String defaultLocale = languageManager.getDefaultLocale();
-
-        ProxyServer.getInstance().getPluginManager().registerCommand(
-                plugin, new BungeeCommandWrapper(command, commandUtil, defaultLocale)
-        );
-    }
-
-    protected static class BungeeCommandWrapper extends net.md_5.bungee.api.plugin.Command {
-        private final Command command;
-        private final CommandUtil commandUtil;
-        private final String defaultLocale;
-
-        public BungeeCommandWrapper(Command command, CommandUtil commandUtil,
-                                    String defaultLocale) {
-            super(command.getName());
-            this.command = command;
-            this.commandUtil = commandUtil;
-            this.defaultLocale = defaultLocale;
+    public void execute(CommandSender sender, String[] args) {
+      if (!(sender instanceof ProxiedPlayer)) {
+        if (command.isRequirePlayer()) {
+          commandUtil.sendMessage(sender, defaultLocale, CommonCommandMessage.NOT_A_PLAYER);
+          return;
         }
+        command.execute(sender, defaultLocale, args);
+        return;
+      }
 
-        @Override
-        public void execute(CommandSender sender, String[] args) {
-            if (!(sender instanceof ProxiedPlayer)) {
-                if (command.isRequirePlayer()) {
-                    commandUtil.sendMessage(
-                            sender, defaultLocale,
-                            CommonCommandMessage.NOT_A_PLAYER
-                    );
-                    return;
-                }
-                command.execute(sender, defaultLocale, args);
-                return;
-            }
+      ProxiedPlayer player = (ProxiedPlayer) sender;
+      Locale locale = player.getLocale();
+      String localeString = locale.getLanguage() + "_" + locale.getCountry();
 
-            ProxiedPlayer player = (ProxiedPlayer) sender;
-            Locale locale = player.getLocale();
-            String localeString = locale.getLanguage() + "_" + locale.getCountry();
-
-            command.execute(sender, player.getUniqueId(), player.getName(), localeString, args);
-        }
+      command.execute(sender, player.getUniqueId(), player.getName(), localeString, args);
     }
+  }
 }

@@ -26,36 +26,36 @@
 package org.geysermc.floodgate.link;
 
 import com.google.inject.Inject;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import lombok.AccessLevel;
 import lombok.Getter;
 import org.geysermc.floodgate.api.link.PlayerLink;
 import org.geysermc.floodgate.api.logger.FloodgateLogger;
 import org.geysermc.floodgate.config.FloodgateConfig;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
 public abstract class CommonPlayerLink implements PlayerLink {
-    @Getter private boolean enabled;
-    @Getter private boolean allowLinking;
-    @Getter private long verifyLinkTimeout;
+  @Getter(AccessLevel.PROTECTED)
+  private final ExecutorService executorService = Executors.newFixedThreadPool(11);
 
-    @Getter(AccessLevel.PROTECTED)
-    private final ExecutorService executorService = Executors.newFixedThreadPool(11);
+  @Getter private boolean enabled;
+  @Getter private boolean allowLinking;
+  @Getter private long verifyLinkTimeout;
 
-    @Inject @Getter(AccessLevel.PROTECTED)
-    private FloodgateLogger logger;
+  @Inject
+  @Getter(AccessLevel.PROTECTED)
+  private FloodgateLogger logger;
 
-    @Inject
-    private void init(FloodgateConfig config) {
-        FloodgateConfig.PlayerLinkConfig linkConfig = config.getPlayerLink();
-        enabled = linkConfig.isEnabled();
-        allowLinking = linkConfig.isAllowLinking();
-        verifyLinkTimeout = linkConfig.getLinkCodeTimeout();
-    }
+  @Inject
+  private void init(FloodgateConfig config) {
+    FloodgateConfig.PlayerLinkConfig linkConfig = config.getPlayerLink();
+    enabled = linkConfig.isEnabled();
+    allowLinking = linkConfig.isAllowLinking();
+    verifyLinkTimeout = linkConfig.getLinkCodeTimeout();
+  }
 
-    @Override
-    public void stop() {
-        executorService.shutdown();
-    }
+  @Override
+  public void stop() {
+    executorService.shutdown();
+  }
 }

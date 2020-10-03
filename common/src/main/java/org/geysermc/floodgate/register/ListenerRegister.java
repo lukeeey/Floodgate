@@ -27,21 +27,20 @@ package org.geysermc.floodgate.register;
 
 import com.google.inject.Inject;
 import com.google.inject.Injector;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.geysermc.floodgate.platform.listener.ListenerRegistration;
 
-import java.util.Set;
-
 @RequiredArgsConstructor(onConstructor = @__(@Inject))
 public final class ListenerRegister<T> {
-    private final ListenerRegistration<T> registration;
-    private final Injector guice;
+  private final ListenerRegistration<T> registration;
+  private final Injector guice;
 
-    @Inject
-    public void registerListeners(Set<T> foundListeners) {
-        for (T listener : foundListeners) {
-            guice.injectMembers(listener);
-            registration.register(listener);
-        }
+  @Inject
+  public void registerListeners(Set<T> foundListeners) {
+    for (T listener : foundListeners) {
+      guice.injectMembers(listener);
+      registration.register(listener);
     }
+  }
 }

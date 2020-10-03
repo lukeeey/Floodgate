@@ -53,95 +53,95 @@ import org.geysermc.floodgate.util.VelocityCommandUtil;
 import org.slf4j.Logger;
 
 public final class VelocityPlatformModule extends AbstractModule {
-    @Override
-    protected void configure() {
-        bind(SimpleFloodgateApi.class).to(ProxyFloodgateApi.class);
-        bind(CommandUtil.class).to(VelocityCommandUtil.class);
-    }
+  @Override
+  protected void configure() {
+    bind(SimpleFloodgateApi.class).to(ProxyFloodgateApi.class);
+    bind(CommandUtil.class).to(VelocityCommandUtil.class);
+  }
 
-    @Provides
-    @Singleton
-    @Named("configClass")
-    public Class<? extends FloodgateConfig> floodgateConfigClass() {
-        return ProxyFloodgateConfig.class;
-    }
+  @Provides
+  @Singleton
+  @Named("configClass")
+  public Class<? extends FloodgateConfig> floodgateConfigClass() {
+    return ProxyFloodgateConfig.class;
+  }
 
-    @Provides
-    @Singleton
-    public ProxyFloodgateApi proxyFloodgateApi(FloodgateCipher cipher) {
-        return new ProxyFloodgateApi(cipher);
-    }
+  @Provides
+  @Singleton
+  public ProxyFloodgateApi proxyFloodgateApi(FloodgateCipher cipher) {
+    return new ProxyFloodgateApi(cipher);
+  }
 
-    @Provides
-    @Singleton
-    public FloodgateLogger floodgateLogger(Logger logger) {
-        return new Slf4jFloodgateLogger(logger);
-    }
+  @Provides
+  @Singleton
+  public FloodgateLogger floodgateLogger(Logger logger) {
+    return new Slf4jFloodgateLogger(logger);
+  }
 
-    /*
-    Commands / Listeners
-     */
+  /*
+  Commands / Listeners
+   */
 
-    @Provides
-    @Singleton
-    public CommandRegistration commandRegistration(CommandManager commandManager,
-                                                   VelocityCommandUtil commandUtil,
-                                                   LanguageManager languageManager) {
-        return new VelocityCommandRegistration(commandManager, commandUtil, languageManager);
-    }
+  @Provides
+  @Singleton
+  public CommandRegistration commandRegistration(
+      CommandManager commandManager,
+      VelocityCommandUtil commandUtil,
+      LanguageManager languageManager) {
+    return new VelocityCommandRegistration(commandManager, commandUtil, languageManager);
+  }
 
-    @Provides
-    @Singleton
-    public VelocityCommandUtil commandUtil(FloodgateLogger logger,
-                                           LanguageManager languageManager) {
-        return new VelocityCommandUtil(logger, languageManager);
-    }
+  @Provides
+  @Singleton
+  public VelocityCommandUtil commandUtil(FloodgateLogger logger, LanguageManager languageManager) {
+    return new VelocityCommandUtil(logger, languageManager);
+  }
 
-    @Provides
-    @Singleton
-    public ListenerRegistration<Object> listenerRegistration(EventManager eventManager,
-                                                             VelocityPlugin plugin) {
-        return new VelocityListenerRegistration(eventManager, plugin);
-    }
+  @Provides
+  @Singleton
+  public ListenerRegistration<Object> listenerRegistration(
+      EventManager eventManager, VelocityPlugin plugin) {
+    return new VelocityListenerRegistration(eventManager, plugin);
+  }
 
-    /*
-    DebugAddon / PlatformInjector
-     */
+  /*
+  DebugAddon / PlatformInjector
+   */
 
-    @Provides
-    @Singleton
-    public CommonPlatformInjector platformInjector(ProxyServer server) {
-        return new VelocityInjector(server);
-    }
+  @Provides
+  @Singleton
+  public CommonPlatformInjector platformInjector(ProxyServer server) {
+    return new VelocityInjector(server);
+  }
 
-    @Provides
-    @Named("packetEncoder")
-    public String packetEncoder() {
-        return "minecraft-encoder";
-    }
+  @Provides
+  @Named("packetEncoder")
+  public String packetEncoder() {
+    return "minecraft-encoder";
+  }
 
-    @Provides
-    @Named("packetDecoder")
-    public String packetDecoder() {
-        return "minecraft-decoder";
-    }
+  @Provides
+  @Named("packetDecoder")
+  public String packetDecoder() {
+    return "minecraft-decoder";
+  }
 
-    @Provides
-    @Named("packetHandler")
-    public String packetHandler() {
-        return "handler";
-    }
+  @Provides
+  @Named("packetHandler")
+  public String packetHandler() {
+    return "handler";
+  }
 
-    @Provides
-    @Named("implementationName")
-    public String implementationName() {
-        return "Velocity";
-    }
+  @Provides
+  @Named("implementationName")
+  public String implementationName() {
+    return "Velocity";
+  }
 
-    @Provides
-    @Singleton
-    @Named("kickMessageAttribute")
-    public AttributeKey<String> kickMessageAttribute() {
-        return AttributeKey.newInstance("floodgate-kick-message");
-    }
+  @Provides
+  @Singleton
+  @Named("kickMessageAttribute")
+  public AttributeKey<String> kickMessageAttribute() {
+    return AttributeKey.newInstance("floodgate-kick-message");
+  }
 }

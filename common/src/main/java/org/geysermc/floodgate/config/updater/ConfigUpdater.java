@@ -25,9 +25,7 @@
 
 package org.geysermc.floodgate.config.updater;
 
-import lombok.RequiredArgsConstructor;
-import org.geysermc.floodgate.api.logger.FloodgateLogger;
-import org.yaml.snakeyaml.Yaml;
+import static com.google.common.base.Preconditions.checkArgument;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -35,63 +33,63 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
-
-import static com.google.common.base.Preconditions.checkArgument;
+import lombok.RequiredArgsConstructor;
+import org.geysermc.floodgate.api.logger.FloodgateLogger;
+import org.yaml.snakeyaml.Yaml;
 
 @RequiredArgsConstructor
 public class ConfigUpdater {
-    private final Path dataFolder;
-    private final ConfigFileUpdater fileUpdater;
-    private final FloodgateLogger logger;
+  private static final int CONFIG_VERSION = 1;
+  private final Path dataFolder;
+  private final ConfigFileUpdater fileUpdater;
+  private final FloodgateLogger logger;
 
-    private static final int CONFIG_VERSION = 1;
+  public void update(Path defaultConfigLocation) {
+    Path configLocation = dataFolder.resolve("config.yml");
 
-    public void update(Path defaultConfigLocation) {
-        Path configLocation = dataFolder.resolve("config.yml");
-
-        BufferedReader configReader;
-        try {
-            configReader = Files.newBufferedReader(configLocation);
-        } catch (IOException exception) {
-            logger.error("Error while opening the config file", exception);
-            throw new RuntimeException("Failed to update config");
-        }
-
-        Map<String, Object> config = new Yaml().load(configReader);
-        // currently unused, but can be used when a config name has been changed
-        Map<String, String> renames = new HashMap<>(0);
-
-        Object versionElement = config.get("config-version");
-        // not a pre-rewrite config
-        if (versionElement != null) {
-            checkArgument(
-                    versionElement instanceof Integer,
-                    "Config version should be an integer. Did someone mess with the config?"
-            );
-
-            int version = (int) versionElement;
-            checkArgument(
-                    version == CONFIG_VERSION,
-                    "Config is newer then possible on this version! Expected " + CONFIG_VERSION + ", got " + version
-            );
-
-            // config is already up-to-date
-            if (version == CONFIG_VERSION) {
-                return;
-            }
-        } else {
-            logger.warn("You're using a pre-rewrite config file, please note that Floodgate will " +
-                    "throw an exception if you didn't already update your Floodgate key" +
-                    "(across all your servers, including Geyser)." +
-                    "We'll still try to update the config," +
-                    "but please regenerate the keys if it failed before asking for support.");
-        }
-
-        try {
-            fileUpdater.update(configLocation, config, renames, defaultConfigLocation);
-        } catch (IOException exception) {
-            logger.error("Error while updating the config file", exception);
-            throw new RuntimeException("Failed to update config");
-        }
+    BufferedReader configReader;
+    try {
+      configReader = Files.newBufferedReader(configLocation);
+    } catch (IOException exception) {
+      logger.error("Error while opening the config file", exception);
+      throw new RuntimeException("Failed to update config");
     }
+
+    Map<String, Object> config = new Yaml().load(configReader);
+    // currently unused, but can be used when a config name has been changed
+    Map<String, String> renames = new HashMap<>(0);
+
+    Object versionElement = config.get("config-version");
+    // not a pre-rewrite config
+    if (versionElement != null) {
+      checkArgument(
+          versionElement instanceof Integer,
+          "Config version should be an integer. Did someone mess with the config?");
+
+      int version = (int) versionElement;
+      checkArgument(
+          version == CONFIG_VERSION,
+          String.format(
+              "Config is newer then possible on this version! Expected %s, got %s",
+              CONFIG_VERSION, version));
+
+      // config is already up-to-date
+      if (version == CONFIG_VERSION) {
+        return;
+      }
+    } else {
+      logger.warn(
+          "You're using a pre-rewrite config file, please note that Floodgate will "
+              + "throw an exception if you didn't already update your Floodgate key"
+              + "(across all your servers, including Geyser). We'll still try to update the config,"
+              + "but please regenerate the keys if it failed before asking for support.");
+    }
+
+    try {
+      fileUpdater.update(configLocation, config, renames, defaultConfigLocation);
+    } catch (IOException exception) {
+      logger.error("Error while updating the config file", exception);
+      throw new RuntimeException("Failed to update config");
+    }
+  }
 }

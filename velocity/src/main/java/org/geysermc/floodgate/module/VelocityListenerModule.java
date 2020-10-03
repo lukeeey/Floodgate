@@ -33,14 +33,14 @@ import org.geysermc.floodgate.listener.VelocityListener;
 import org.geysermc.floodgate.register.ListenerRegister;
 
 public final class VelocityListenerModule extends AbstractModule {
-    @Override
-    protected void configure() {
-        bind(new TypeLiteral<ListenerRegister<Object>>() {}).asEagerSingleton();
-    }
+  @Override
+  protected void configure() {
+    bind(new TypeLiteral<ListenerRegister<Object>>() {}).asEagerSingleton();
+  }
 
-    @Singleton
-    @ProvidesIntoSet
-    public Object velocityListener() {
-        return new VelocityListener();
-    }
+  @Singleton
+  @ProvidesIntoSet
+  public Object velocityListener() {
+    return new VelocityListener();
+  }
 }

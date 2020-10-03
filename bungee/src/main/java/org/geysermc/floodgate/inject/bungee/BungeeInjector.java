@@ -26,75 +26,74 @@
 package org.geysermc.floodgate.inject.bungee;
 
 import io.netty.channel.Channel;
-import javassist.*;
+import java.lang.reflect.Field;
+import java.util.function.Consumer;
+import javassist.ClassPool;
+import javassist.CtClass;
+import javassist.CtField;
+import javassist.Modifier;
+import javax.naming.OperationNotSupportedException;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.geysermc.floodgate.api.logger.FloodgateLogger;
 import org.geysermc.floodgate.inject.CommonPlatformInjector;
 import org.geysermc.floodgate.util.ReflectionUtils;
 
-import javax.naming.OperationNotSupportedException;
-import java.util.function.Consumer;
-
 @RequiredArgsConstructor
 public final class BungeeInjector extends CommonPlatformInjector {
-    private final FloodgateLogger logger;
-    @Getter
-    private boolean injected;
+  private final FloodgateLogger logger;
+  @Getter private boolean injected;
 
-    @Override
-    public boolean inject() {
-        try {
-            // short version: needed a reliable way to access the encoder and decoder before the
-            // handshake packet.
+  @Override
+  public boolean inject() {
+    try {
+      // short version: needed a reliable way to access the encoder and decoder before the
+      // handshake packet.
 
-            ClassPool classPool = ClassPool.getDefault();
+      ClassPool classPool = ClassPool.getDefault();
 
-            CtClass handlerBossClass = classPool.get("net.md_5.bungee.netty.HandlerBoss");
+      CtClass handlerBossClass = classPool.get("net.md_5.bungee.netty.HandlerBoss");
 
-            // create a new field that we can access
-            CtField channelConsumerField = new CtField(
-                    classPool.get("java.util.function.Consumer"), "channelConsumer", handlerBossClass
-            );
-            channelConsumerField.setModifiers(Modifier.PUBLIC | Modifier.STATIC);
-            handlerBossClass.addField(channelConsumerField);
+      // create a new field that we can access
+      CtField channelConsumerField =
+          new CtField(
+              classPool.get("java.util.function.Consumer"), "channelConsumer", handlerBossClass);
+      channelConsumerField.setModifiers(Modifier.PUBLIC | Modifier.STATIC);
 
-            // edit a method to call the new field when we need it
-            CtMethod channelActiveMethod = handlerBossClass.getMethod(
-                    "channelActive", "(Lio/netty/channel/ChannelHandlerContext;)V");
-            channelActiveMethod.insertBefore("" +
-                    "{if (handler != null) {channelConsumer.accept(ctx.channel());}}");
+      handlerBossClass.addField(channelConsumerField);
 
-            Class<?> clazz = handlerBossClass.toClass();
+      // edit a method to call the new field when we need it
+      handlerBossClass
+          .getMethod("channelActive", "(Lio/netty/channel/ChannelHandlerContext;)V")
+          .insertBefore("{if (handler != null) {channelConsumer.accept(ctx.channel());}}");
 
-            Consumer<Channel> channelConsumer = channel ->
-                    injectClient(channel, channel.parent() != null);
+      Class<?> clazz = handlerBossClass.toClass();
 
-            // set the field we just made
-            ReflectionUtils.setValue(
-                    null,
-                    ReflectionUtils.getField(clazz, "channelConsumer"),
-                    channelConsumer
-            );
+      Consumer<Channel> channelConsumer =
+          channel -> injectClient(channel, channel.parent() != null);
 
-            injected = true;
-            return true;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        }
+      // get and set the field we just made
+      Field consumerField = ReflectionUtils.getField(clazz, "channelConsumer");
+      ReflectionUtils.setValue(null, consumerField, channelConsumer);
+
+      injected = true;
+      return true;
+    } catch (Exception e) {
+      e.printStackTrace();
+      return false;
     }
+  }
 
-    @Override
-    public boolean removeInjection() throws Exception {
-        //todo implement injection removal support
-        throw new OperationNotSupportedException(
-                "Floodgate cannot remove the Bungee injection at the moment");
-    }
+  @Override
+  public boolean removeInjection() throws Exception {
+    // todo implement injection removal support
+    throw new OperationNotSupportedException(
+        "Floodgate cannot remove the Bungee injection at the moment");
+  }
 
-    public void injectClient(Channel channel, boolean clientToProxy) {
-        logger.info("Client to proxy? " + clientToProxy);
-        injectAddonsCall(channel, !clientToProxy);
-        addInjectedClient(channel);
-    }
+  public void injectClient(Channel channel, boolean toProxy) {
+    logger.info("Client to proxy? " + toProxy);
+    injectAddonsCall(channel, !toProxy);
+    addInjectedClient(channel);
+  }
 }

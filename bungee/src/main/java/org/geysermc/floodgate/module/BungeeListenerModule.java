@@ -34,14 +34,14 @@ import org.geysermc.floodgate.listener.BungeeListener;
 import org.geysermc.floodgate.register.ListenerRegister;
 
 public final class BungeeListenerModule extends AbstractModule {
-    @Override
-    protected void configure() {
-        bind(new TypeLiteral<ListenerRegister<Listener>>() {}).asEagerSingleton();
-    }
+  @Override
+  protected void configure() {
+    bind(new TypeLiteral<ListenerRegister<Listener>>() {}).asEagerSingleton();
+  }
 
-    @Singleton
-    @ProvidesIntoSet
-    public Listener bungeeListener() {
-        return new BungeeListener();
-    }
+  @Singleton
+  @ProvidesIntoSet
+  public Listener bungeeListener() {
+    return new BungeeListener();
+  }
 }

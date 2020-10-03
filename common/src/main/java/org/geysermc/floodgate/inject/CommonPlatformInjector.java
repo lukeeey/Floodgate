@@ -26,81 +26,77 @@
 package org.geysermc.floodgate.inject;
 
 import io.netty.channel.Channel;
-import org.geysermc.floodgate.api.inject.InjectorAddon;
-import org.geysermc.floodgate.api.inject.PlatformInjector;
-
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import org.geysermc.floodgate.api.inject.InjectorAddon;
+import org.geysermc.floodgate.api.inject.PlatformInjector;
 
 public abstract class CommonPlatformInjector implements PlatformInjector {
-    private final Set<Channel> injectedClients = new HashSet<>();
-    private final Map<Class<?>, InjectorAddon> addons = new HashMap<>();
+  private final Set<Channel> injectedClients = new HashSet<>();
+  private final Map<Class<?>, InjectorAddon> addons = new HashMap<>();
 
-    protected boolean addInjectedClient(Channel channel) {
-        return injectedClients.add(channel);
-    }
+  protected boolean addInjectedClient(Channel channel) {
+    return injectedClients.add(channel);
+  }
 
-    protected boolean removeInjectedClient(Channel channel) {
-        return injectedClients.remove(channel);
-    }
+  protected boolean removeInjectedClient(Channel channel) {
+    return injectedClients.remove(channel);
+  }
 
-    @Override
-    public boolean addAddon(InjectorAddon addon) {
-        return addons.putIfAbsent(addon.getClass(), addon) == null;
-    }
+  @Override
+  public boolean addAddon(InjectorAddon addon) {
+    return addons.putIfAbsent(addon.getClass(), addon) == null;
+  }
 
-    @Override
-    @SuppressWarnings("unchecked")
-    public <T extends InjectorAddon> T removeAddon(Class<T> addon) {
-        return (T) addons.remove(addon);
-    }
+  @Override
+  @SuppressWarnings("unchecked")
+  public <T extends InjectorAddon> T removeAddon(Class<T> addon) {
+    return (T) addons.remove(addon);
+  }
 
-    /**
-     * Method to loop through all the addons and call
-     * {@link InjectorAddon#onInject(Channel, boolean)} if
-     * {@link InjectorAddon#shouldInject()}.
-     *
-     * @param channel       the channel to inject
-     * @param proxyToServer true if the proxy is connecting to a server or false when the player
-     *                      is connecting to the proxy or false when the platform isn't a proxy
-     */
-    public void injectAddonsCall(Channel channel, boolean proxyToServer) {
-        for (InjectorAddon addon : addons.values()) {
-            if (addon.shouldInject()) {
-                addon.onInject(channel, proxyToServer);
-            }
-        }
+  /**
+   * Method to loop through all the addons and call {@link InjectorAddon#onInject(Channel, boolean)}
+   * if {@link InjectorAddon#shouldInject()}.
+   *
+   * @param channel the channel to inject
+   * @param toServer true if the proxy is connecting to a server or false when the player is
+   *     connecting to the proxy or false when the platform isn't a proxy
+   */
+  public void injectAddonsCall(Channel channel, boolean toServer) {
+    for (InjectorAddon addon : addons.values()) {
+      if (addon.shouldInject()) {
+        addon.onInject(channel, toServer);
+      }
     }
+  }
 
-    /**
-     * Method to loop through all the addons and call
-     * {@link InjectorAddon#onLoginDone(Channel)} if
-     * {@link InjectorAddon#shouldInject()}.
-     *
-     * @param channel the channel that was injected
-     */
-    public void loginSuccessCall(Channel channel) {
-        for (InjectorAddon addon : addons.values()) {
-            if (addon.shouldInject()) {
-                addon.onLoginDone(channel);
-            }
-        }
+  /**
+   * Method to loop through all the addons and call {@link InjectorAddon#onLoginDone(Channel)} if
+   * {@link InjectorAddon#shouldInject()}.
+   *
+   * @param channel the channel that was injected
+   */
+  public void loginSuccessCall(Channel channel) {
+    for (InjectorAddon addon : addons.values()) {
+      if (addon.shouldInject()) {
+        addon.onLoginDone(channel);
+      }
     }
+  }
 
-    /**
-     * Method to loop through all the addons and call
-     * {@link InjectorAddon#onRemoveInject(Channel)} if
-     * {@link InjectorAddon#shouldInject()}.
-     *
-     * @param channel the channel that was injected
-     */
-    public void removeAddonsCall(Channel channel) {
-        for (InjectorAddon addon : addons.values()) {
-            if (addon.shouldInject()) {
-                addon.onRemoveInject(channel);
-            }
-        }
+  /**
+   * Method to loop through all the addons and call {@link InjectorAddon#onRemoveInject(Channel)} if
+   * {@link InjectorAddon#shouldInject()}.
+   *
+   * @param channel the channel that was injected
+   */
+  public void removeAddonsCall(Channel channel) {
+    for (InjectorAddon addon : addons.values()) {
+      if (addon.shouldInject()) {
+        addon.onRemoveInject(channel);
+      }
     }
+  }
 }

@@ -28,6 +28,7 @@ package org.geysermc.floodgate.addon.data;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandler;
 import io.netty.util.AttributeKey;
 import org.geysermc.floodgate.HandshakeHandler;
 import org.geysermc.floodgate.api.inject.InjectorAddon;
@@ -36,36 +37,37 @@ import org.geysermc.floodgate.api.player.FloodgatePlayer;
 import org.geysermc.floodgate.config.FloodgateConfig;
 
 public final class SpigotDataAddon implements InjectorAddon {
-    @Inject private HandshakeHandler handshakeHandler;
-    @Inject private FloodgateConfig config;
-    @Inject private FloodgateLogger logger;
+  @Inject private HandshakeHandler handshakeHandler;
+  @Inject private FloodgateConfig config;
+  @Inject private FloodgateLogger logger;
 
-    @Inject @Named("playerAttribute")
-    private AttributeKey<FloodgatePlayer> playerAttribute;
+  @Inject
+  @Named("playerAttribute")
+  private AttributeKey<FloodgatePlayer> playerAttribute;
 
-    @Inject @Named("packetHandler")
-    private String packetHandlerName;
+  @Inject
+  @Named("packetHandler")
+  private String packetHandlerName;
 
-    @Override
-    public void onInject(Channel channel, boolean proxyToServer) {
-        channel.pipeline().addBefore(
-                packetHandlerName, "floodgate_data_handler",
-                new SpigotDataHandler(config, handshakeHandler, playerAttribute, logger)
-        );
-    }
+  @Override
+  public void onInject(Channel channel, boolean toServer) {
+    ChannelHandler dataHandler =
+        new SpigotDataHandler(config, handshakeHandler, playerAttribute, logger);
+    channel.pipeline().addBefore(packetHandlerName, "floodgate_data_handler", dataHandler);
+  }
 
-    @Override
-    public void onLoginDone(Channel channel) {
-        onRemoveInject(channel);
-    }
+  @Override
+  public void onLoginDone(Channel channel) {
+    onRemoveInject(channel);
+  }
 
-    @Override
-    public void onRemoveInject(Channel channel) {
-        channel.pipeline().remove("floodgate_data_handler");
-    }
+  @Override
+  public void onRemoveInject(Channel channel) {
+    channel.pipeline().remove("floodgate_data_handler");
+  }
 
-    @Override
-    public boolean shouldInject() {
-        return true;
-    }
+  @Override
+  public boolean shouldInject() {
+    return true;
+  }
 }

@@ -31,12 +31,12 @@ import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 public final class PostInitializeModule extends AbstractModule {
-    private final Module[] postInitializeModules;
+  private final Module[] postInitializeModules;
 
-    @Override
-    protected void configure() {
-        for (Module module : postInitializeModules) {
-            install(module);
-        }
+  @Override
+  protected void configure() {
+    for (Module module : postInitializeModules) {
+      install(module);
     }
+  }
 }

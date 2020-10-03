@@ -30,37 +30,34 @@ import com.google.inject.Injector;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
 import com.velocitypowered.api.plugin.annotation.DataDirectory;
-import org.geysermc.floodgate.module.*;
+import java.nio.file.Path;
+import org.geysermc.floodgate.module.CommandModule;
+import org.geysermc.floodgate.module.CommonModule;
+import org.geysermc.floodgate.module.VelocityAddonModule;
+import org.geysermc.floodgate.module.VelocityListenerModule;
+import org.geysermc.floodgate.module.VelocityPlatformModule;
 import org.geysermc.floodgate.util.ReflectionUtils;
 import org.slf4j.Logger;
 
-import java.nio.file.Path;
-
 public final class VelocityPlugin {
-    private final FloodgatePlatform platform;
+  private final FloodgatePlatform platform;
 
-    @Inject
-    public VelocityPlugin(@DataDirectory Path dataDirectory, Injector guice, Logger logger) {
-        ReflectionUtils.setPrefix("com.velocitypowered.proxy");
+  @Inject
+  public VelocityPlugin(@DataDirectory Path dataDirectory, Injector guice, Logger logger) {
+    ReflectionUtils.setPrefix("com.velocitypowered.proxy");
 
-        long ctm = System.currentTimeMillis();
-        Injector injector = guice.createChildInjector(
-                new CommonModule(dataDirectory),
-                new VelocityPlatformModule()
-        );
+    long ctm = System.currentTimeMillis();
+    Injector injector =
+        guice.createChildInjector(new CommonModule(dataDirectory), new VelocityPlatformModule());
 
-        platform = injector.getInstance(FloodgatePlatform.class);
+    platform = injector.getInstance(FloodgatePlatform.class);
 
-        long endCtm = System.currentTimeMillis();
-        logger.info(platform.getLanguageManager().getLogString(
-                "floodgate.core.finish",
-                endCtm - ctm
-        ));
-    }
+    long endCtm = System.currentTimeMillis();
+    logger.info(platform.getLanguageManager().getLogString("floodgate.core.finish", endCtm - ctm));
+  }
 
-    @Subscribe
-    public void onProxyInitialization(ProxyInitializeEvent event) {
-        platform.enable(new CommandModule(), new VelocityListenerModule(),
-                new VelocityAddonModule());
-    }
+  @Subscribe
+  public void onProxyInitialization(ProxyInitializeEvent event) {
+    platform.enable(new CommandModule(), new VelocityListenerModule(), new VelocityAddonModule());
+  }
 }

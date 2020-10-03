@@ -25,15 +25,13 @@
 
 package org.geysermc.floodgate.link;
 
+import static java.util.Objects.requireNonNull;
+
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
 import com.google.inject.name.Named;
-import org.geysermc.floodgate.api.link.PlayerLink;
-import org.geysermc.floodgate.api.logger.FloodgateLogger;
-import org.geysermc.floodgate.config.FloodgateConfig;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -43,89 +41,91 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Collectors;
-
-import static java.util.Objects.requireNonNull;
+import org.geysermc.floodgate.api.link.PlayerLink;
+import org.geysermc.floodgate.api.logger.FloodgateLogger;
+import org.geysermc.floodgate.config.FloodgateConfig;
 
 public class PlayerLinkLoader {
-    @Named("dataDirectory")
-    @Inject private Path dataDirectory;
-    @Inject private Injector injector;
-    @Inject private FloodgateConfig config;
+  @Named("dataDirectory")
+  @Inject
+  private Path dataDirectory;
 
-    @Inject private FloodgateLogger logger;
+  @Inject private Injector injector;
+  @Inject private FloodgateConfig config;
 
-    public PlayerLink load() {
-        FloodgateConfig.PlayerLinkConfig linkConfig = config.getPlayerLink();
-        if (!linkConfig.isEnabled()) {
-            return new DisabledPlayerLink();
-        }
+  @Inject private FloodgateLogger logger;
 
-        List<Path> files;
-        try {
-            files = Files.list(dataDirectory)
-                    .filter(path -> Files.isRegularFile(path) && path.toString().endsWith("jar"))
-                    .collect(Collectors.toList());
-        } catch (IOException exception) {
-            logger.error("Failed to list possible database implementations", exception);
-            return null;
-        }
-
-        if (files.size() == 0) {
-            logger.error("Failed to find a database implementation");
-            return null;
-        }
-
-        Path implementationPath = files.get(0);
-
-        // We only want to load one database implementation
-        String type = linkConfig.getType().toLowerCase();
-        if (files.size() > 1) {
-            implementationPath = null;
-            for (Path path : files) {
-                if (path.getFileName().toString().toLowerCase().contains(type)) {
-                    implementationPath = path;
-                }
-            }
-            if (implementationPath == null) {
-                logger.error("Failed to find an implementation for type: {}",
-                        linkConfig.getType());
-                return null;
-            }
-        }
-
-        Class<? extends PlayerLink> mainClass;
-        try {
-            URL pluginUrl = implementationPath.toUri().toURL();
-            URLClassLoader classLoader = new URLClassLoader(
-                    new URL[]{pluginUrl},
-                    PlayerLinkLoader.class.getClassLoader()
-            );
-
-            InputStream linkImplConfigStream = classLoader.getResourceAsStream("config.json");
-            requireNonNull(linkImplConfigStream, "Database implementation should contain a config");
-
-            JsonObject linkImplConfig = new Gson().fromJson(
-                    new InputStreamReader(linkImplConfigStream), JsonObject.class
-            );
-
-            String mainClassName = linkImplConfig.get("mainClass").getAsString();
-            mainClass = (Class<? extends PlayerLink>) classLoader.loadClass(mainClassName);
-        } catch (ClassCastException exception) {
-            logger.error("The database implementation ({}) doesn't extend the PlayerLink class!",
-                    implementationPath.getFileName().toString());
-            return null;
-        } catch (Exception exception) {
-            logger.error("Error while loading database jar", exception);
-            return null;
-        }
-
-        try {
-            PlayerLink instance = injector.getInstance(mainClass);
-            instance.load();
-            return instance;
-        } catch (Exception exception) {
-            logger.error("Error while initializing database jar", exception);
-        }
-        return null;
+  public PlayerLink load() {
+    FloodgateConfig.PlayerLinkConfig playerLinkConfig = config.getPlayerLink();
+    if (!playerLinkConfig.isEnabled()) {
+      return new DisabledPlayerLink();
     }
+
+    List<Path> files;
+    try {
+      files =
+          Files.list(dataDirectory)
+              .filter(path -> Files.isRegularFile(path) && path.toString().endsWith("jar"))
+              .collect(Collectors.toList());
+    } catch (IOException exception) {
+      logger.error("Failed to list possible database implementations", exception);
+      return null;
+    }
+
+    if (files.size() == 0) {
+      logger.error("Failed to find a database implementation");
+      return null;
+    }
+
+    Path implementationPath = files.get(0);
+
+    // We only want to load one database implementation
+    String type = playerLinkConfig.getType().toLowerCase();
+    if (files.size() > 1) {
+      implementationPath = null;
+      for (Path path : files) {
+        if (path.getFileName().toString().toLowerCase().contains(type)) {
+          implementationPath = path;
+        }
+      }
+      if (implementationPath == null) {
+        logger.error("Failed to find an implementation for type: {}", playerLinkConfig.getType());
+        return null;
+      }
+    }
+
+    // load the config file and load the main class from there
+    Class<? extends PlayerLink> mainClass;
+    try {
+      URL pluginUrl = implementationPath.toUri().toURL();
+      URLClassLoader classLoader =
+          new URLClassLoader(new URL[] {pluginUrl}, PlayerLinkLoader.class.getClassLoader());
+
+      InputStream linkConfigStream = classLoader.getResourceAsStream("config.json");
+      requireNonNull(linkConfigStream, "Database implementation should contain a config");
+
+      JsonObject linkConfig =
+          new Gson().fromJson(new InputStreamReader(linkConfigStream), JsonObject.class);
+
+      String mainClassName = linkConfig.get("mainClass").getAsString();
+      mainClass = (Class<? extends PlayerLink>) classLoader.loadClass(mainClassName);
+    } catch (ClassCastException exception) {
+      logger.error(
+          "The database implementation ({}) doesn't extend the PlayerLink class!",
+          implementationPath.getFileName().toString());
+      return null;
+    } catch (Exception exception) {
+      logger.error("Error while loading database jar", exception);
+      return null;
+    }
+
+    try {
+      PlayerLink instance = injector.getInstance(mainClass);
+      instance.load();
+      return instance;
+    } catch (Exception exception) {
+      logger.error("Error while initializing database jar", exception);
+    }
+    return null;
+  }
 }

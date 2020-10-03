@@ -25,13 +25,21 @@
 
 package org.geysermc.floodgate.handler;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.geysermc.floodgate.HandshakeHandler.ResultType;
+
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import io.netty.channel.Channel;
 import io.netty.util.AttributeKey;
+import java.lang.reflect.Field;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import net.md_5.bungee.api.connection.PendingConnection;
 import net.md_5.bungee.api.connection.ProxiedPlayer;
 import net.md_5.bungee.api.event.PreLoginEvent;
 import net.md_5.bungee.api.plugin.Plugin;
+import net.md_5.bungee.api.scheduler.TaskScheduler;
 import net.md_5.bungee.protocol.packet.Handshake;
 import org.geysermc.floodgate.HandshakeHandler;
 import org.geysermc.floodgate.HandshakeHandler.HandshakeResult;
@@ -42,144 +50,123 @@ import org.geysermc.floodgate.config.ProxyFloodgateConfig;
 import org.geysermc.floodgate.util.BedrockData;
 import org.geysermc.floodgate.util.ReflectionUtils;
 
-import java.lang.reflect.Field;
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.geysermc.floodgate.HandshakeHandler.ResultType;
-
 public final class BungeeDataHandler {
-    private static final Field EXTRA_HANDSHAKE_DATA;
-    private static final Field PLAYER_NAME;
-    private static final Field PLAYER_CHANNEL_WRAPPER;
-    private static final Field PLAYER_CHANNEL;
-    private static final Field PLAYER_REMOTE_ADDRESS;
-    private static final Field CACHED_HANDSHAKE_PACKET;
+  private static final Field EXTRA_HANDSHAKE_DATA;
+  private static final Field PLAYER_NAME;
+  private static final Field PLAYER_CHANNEL_WRAPPER;
+  private static final Field PLAYER_CHANNEL;
+  private static final Field PLAYER_REMOTE_ADDRESS;
+  private static final Field CACHED_HANDSHAKE_PACKET;
 
-    @Inject
-    private Plugin plugin;
-    @Inject
-    private ProxyFloodgateConfig config;
-    @Inject
-    private ProxyFloodgateApi api;
-    @Inject
-    private HandshakeHandler handler;
-    @Inject
-    @Named("playerAttribute")
-    private AttributeKey<FloodgatePlayer> playerAttribute;
-    @Inject
-    private FloodgateLogger logger;
+  static {
+    Class<?> initialHandler = ReflectionUtils.getPrefixedClass("connection.InitialHandler");
+    EXTRA_HANDSHAKE_DATA = ReflectionUtils.getField(initialHandler, "extraDataInHandshake");
+    checkNotNull(EXTRA_HANDSHAKE_DATA, "extraDataInHandshake field cannot be null");
 
-    public BungeeDataHandler(Plugin plugin, ProxyFloodgateConfig config,
-                             ProxyFloodgateApi api, HandshakeHandler handshakeHandler,
-                             AttributeKey<FloodgatePlayer> playerAttribute,
-                             FloodgateLogger logger) {
-        this.plugin = plugin;
-        this.config = config;
-        this.handler = handshakeHandler;
-        this.api = api;
-        this.playerAttribute = playerAttribute;
-        this.logger = logger;
-    }
+    PLAYER_NAME = ReflectionUtils.getField(initialHandler, "name");
+    checkNotNull(PLAYER_NAME, "Initial name field cannot be null");
 
-    public void handlePreLogin(PreLoginEvent event) {
-        event.registerIntent(plugin);
-        plugin.getProxy().getScheduler().runAsync(plugin, () -> {
-            String extraData = ReflectionUtils.getCastedValue(
-                    event.getConnection(), EXTRA_HANDSHAKE_DATA
-            );
+    Class<?> channelWrapper = ReflectionUtils.getPrefixedClass("netty.ChannelWrapper");
+    PLAYER_CHANNEL_WRAPPER = ReflectionUtils.getFieldOfType(initialHandler, channelWrapper);
+    checkNotNull(PLAYER_CHANNEL_WRAPPER, "ChannelWrapper field cannot be null");
 
-            HandshakeResult result = handler.handle(extraData);
-            switch (result.getResultType()) {
-                case EXCEPTION:
-                    event.setCancelReason(config.getMessages().getInvalidKey());
-                    break;
-                case INVALID_DATA_LENGTH:
-                    event.setCancelReason(String.format(
-                            config.getMessages().getInvalidArgumentsLength(),
-                            BedrockData.EXPECTED_LENGTH, result.getBedrockData().getDataLength()
-                    ));
-                    break;
-            }
+    PLAYER_CHANNEL = ReflectionUtils.getFieldOfType(channelWrapper, Channel.class);
+    checkNotNull(PLAYER_CHANNEL, "Channel field cannot be null");
 
-            // only continue when SUCCESS
-            if (result.getResultType() != ResultType.SUCCESS) {
-                event.completeIntent(plugin);
-                return;
-            }
+    PLAYER_REMOTE_ADDRESS = ReflectionUtils.getFieldOfType(channelWrapper, SocketAddress.class);
+    checkNotNull(PLAYER_REMOTE_ADDRESS, "Remote address field cannot be null");
 
-            FloodgatePlayer player = result.getFloodgatePlayer();
-            api.addEncryptedData(player.getCorrectUniqueId(), result.getHandshakeData()[1]);
+    Class<?> handshakePacket = ReflectionUtils.getPrefixedClass("protocol.packet.Handshake");
+    CACHED_HANDSHAKE_PACKET = ReflectionUtils.getFieldOfType(initialHandler, handshakePacket);
+    checkNotNull(CACHED_HANDSHAKE_PACKET, "Cached handshake packet field cannot be null");
+  }
 
-            event.getConnection().setOnlineMode(false);
-            event.getConnection().setUniqueId(player.getCorrectUniqueId());
+  private Plugin plugin;
+  @Inject private ProxyFloodgateConfig config;
+  @Inject private ProxyFloodgateApi api;
+  @Inject private HandshakeHandler handler;
 
-            ReflectionUtils.setValue(
-                    event.getConnection(), PLAYER_NAME, player.getCorrectUsername()
-            );
+  @Inject
+  @Named("playerAttribute")
+  private AttributeKey<FloodgatePlayer> playerAttribute;
 
-            Object channelWrapper =
-                    ReflectionUtils.getValue(event.getConnection(), PLAYER_CHANNEL_WRAPPER);
+  @Inject private FloodgateLogger logger;
 
-            SocketAddress remoteAddress =
-                    ReflectionUtils.getCastedValue(channelWrapper, PLAYER_REMOTE_ADDRESS);
+  public void handlePreLogin(PreLoginEvent event) {
+    event.registerIntent(plugin);
 
-            Channel channel = ReflectionUtils.getCastedValue(channelWrapper, PLAYER_CHANNEL);
-            channel.attr(playerAttribute).set(player);
+    TaskScheduler scheduler = plugin.getProxy().getScheduler();
+    scheduler.runAsync(
+        plugin,
+        () -> {
+          PendingConnection connection = event.getConnection();
+          String extraData = ReflectionUtils.getCastedValue(connection, EXTRA_HANDSHAKE_DATA);
+          HandshakeResult result = handler.handle(extraData);
 
-            if (!(remoteAddress instanceof InetSocketAddress)) {
-                logger.info("Player {} doesn't use an InetSocketAddress. " +
-                                "It uses {}. Ignoring the player, I guess.",
-                        player.getUsername(), remoteAddress.getClass().getSimpleName()
-                );
-            } else {
-                int port = ((InetSocketAddress) remoteAddress).getPort();
-                ReflectionUtils.setValue(
-                        channelWrapper, PLAYER_REMOTE_ADDRESS,
-                        new InetSocketAddress(result.getBedrockData().getIp(), port)
-                );
-            }
+          if (result.getResultType() == ResultType.EXCEPTION) {
+            event.setCancelReason(config.getMessages().getInvalidKey());
+          }
+
+          if (result.getResultType() == ResultType.INVALID_DATA_LENGTH) {
+            event.setCancelReason(
+                String.format(
+                    config.getMessages().getInvalidArgumentsLength(),
+                    BedrockData.EXPECTED_LENGTH,
+                    result.getBedrockData().getDataLength()));
+          }
+
+          // only continue when SUCCESS
+          if (result.getResultType() != ResultType.SUCCESS) {
             event.completeIntent(plugin);
+            return;
+          }
+
+          FloodgatePlayer player = result.getFloodgatePlayer();
+          api.addEncryptedData(player.getCorrectUniqueId(), result.getHandshakeData()[1]);
+
+          connection.setOnlineMode(false);
+          connection.setUniqueId(player.getCorrectUniqueId());
+
+          ReflectionUtils.setValue(connection, PLAYER_NAME, player.getCorrectUsername());
+
+          Object channelWrapper = ReflectionUtils.getValue(connection, PLAYER_CHANNEL_WRAPPER);
+
+          SocketAddress remoteAddress =
+              ReflectionUtils.getCastedValue(channelWrapper, PLAYER_REMOTE_ADDRESS);
+
+          Channel channel = ReflectionUtils.getCastedValue(channelWrapper, PLAYER_CHANNEL);
+          channel.attr(playerAttribute).set(player);
+
+          if (!(remoteAddress instanceof InetSocketAddress)) {
+            logger.info(
+                "Player {} doesn't use an InetSocketAddress. "
+                    + "It uses {}. Ignoring the player, I guess.",
+                player.getUsername(),
+                remoteAddress.getClass().getSimpleName());
+            event.completeIntent(plugin);
+            return;
+          }
+
+          int port = ((InetSocketAddress) remoteAddress).getPort();
+          InetSocketAddress address = new InetSocketAddress(result.getBedrockData().getIp(), port);
+          ReflectionUtils.setValue(channelWrapper, PLAYER_REMOTE_ADDRESS, address);
+
+          event.completeIntent(plugin);
         });
+  }
+
+  public void handleServerConnect(ProxiedPlayer player) {
+    // Passes the information through to the connecting server if enabled
+    if (config.isSendFloodgateData() && api.isBedrockPlayer(player.getUniqueId())) {
+      Handshake handshake =
+          ReflectionUtils.getCastedValue(player.getPendingConnection(), CACHED_HANDSHAKE_PACKET);
+
+      // Ensures that only the hostname remains,
+      // this way it can't mess up the Floodgate data format
+      String initialHostname = handshake.getHost().split("\0")[0];
+      handshake.setHost(initialHostname + '\0' + api.getEncryptedData(player.getUniqueId()));
+
+      // Bungeecord will add his data after our data
     }
-
-    public void handleServerConnect(ProxiedPlayer player) {
-        // Passes the information through to the connecting server if enabled
-        if (config.isSendFloodgateData() && api.isBedrockPlayer(player.getUniqueId())) {
-            Handshake handshake = ReflectionUtils.getCastedValue(
-                    player.getPendingConnection(), CACHED_HANDSHAKE_PACKET
-            );
-
-            // Ensures that only the hostname remains,
-            // this way it can't mess up the Floodgate data format
-            String initialHostname = handshake.getHost().split("\0")[0];
-            handshake.setHost(initialHostname + '\0' + api.getEncryptedData(player.getUniqueId()));
-
-            // Bungeecord will add his data after our data
-        }
-    }
-
-    static {
-        Class<?> initialHandler = ReflectionUtils.getPrefixedClass("connection.InitialHandler");
-        EXTRA_HANDSHAKE_DATA = ReflectionUtils.getField(initialHandler, "extraDataInHandshake");
-        checkNotNull(EXTRA_HANDSHAKE_DATA, "extraDataInHandshake field cannot be null");
-
-        PLAYER_NAME = ReflectionUtils.getField(initialHandler, "name");
-        checkNotNull(PLAYER_NAME, "Initial name field cannot be null");
-
-        Class<?> channelWrapper = ReflectionUtils.getPrefixedClass("netty.ChannelWrapper");
-        PLAYER_CHANNEL_WRAPPER = ReflectionUtils.getFieldOfType(initialHandler, channelWrapper);
-        checkNotNull(PLAYER_CHANNEL_WRAPPER, "ChannelWrapper field cannot be null");
-
-        PLAYER_CHANNEL = ReflectionUtils.getFieldOfType(channelWrapper, Channel.class);
-        checkNotNull(PLAYER_CHANNEL, "Channel field cannot be null");
-
-        PLAYER_REMOTE_ADDRESS = ReflectionUtils.getFieldOfType(channelWrapper, SocketAddress.class);
-        checkNotNull(PLAYER_REMOTE_ADDRESS, "Remote address field cannot be null");
-
-        Class<?> handshakePacket = ReflectionUtils.getPrefixedClass("protocol.packet.Handshake");
-        CACHED_HANDSHAKE_PACKET = ReflectionUtils.getFieldOfType(initialHandler, handshakePacket);
-        checkNotNull(CACHED_HANDSHAKE_PACKET, "Cached handshake packet field cannot be null");
-    }
+  }
 }

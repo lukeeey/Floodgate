@@ -1,68 +1,69 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="http://maven.apache.org/POM/4.0.0"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <artifactId>parent</artifactId>
 
-    <groupId>org.geysermc.floodgate</groupId>
-    <artifactId>parent</artifactId>
-    <version>1.0-SNAPSHOT</version>
-    <modules>
-        <module>api</module>
-        <module>common</module>
-        <module>spigot</module>
-        <module>bungee</module>
-        <module>velocity</module>
-        <module>database</module>
-    </modules>
-    <packaging>pom</packaging>
-    <name>floodgate</name>
-    <description>Allows Bedrock players to join Java edition servers while keeping online mode</description>
-    <url>https://github.com/GeyserMC/Floodgate</url>
+  <dependencies>
+    <dependency>
+      <artifactId>lombok</artifactId>
+      <groupId>org.projectlombok</groupId>
+      <scope>provided</scope>
+      <version>1.18.10</version>
+    </dependency>
+  </dependencies>
+  <description>Allows Bedrock players to join Java edition servers while keeping online mode
+  </description>
+  <distributionManagement>
+    <repository>
+      <id>releases</id>
+      <name>nukkitx-releases</name>
+      <url>https://repo.nukkitx.com/maven-releases</url>
+    </repository>
+    <snapshotRepository>
+      <id>snapshots</id>
+      <name>nukkitx-snapshots</name>
+      <url>https://repo.nukkitx.com/maven-snapshots</url>
+    </snapshotRepository>
+  </distributionManagement>
+  <groupId>org.geysermc.floodgate</groupId>
+  <modelVersion>4.0.0</modelVersion>
+  <modules>
+    <module>api</module>
+    <module>common</module>
+    <module>spigot</module>
+    <module>bungee</module>
+    <module>velocity</module>
+    <module>database</module>
+  </modules>
+  <name>floodgate</name>
+  <organization>
+    <name>GeyserMC</name>
+    <url>https://geysermc.org/</url>
+  </organization>
 
-    <properties>
-        <geyser.version>1.1.0</geyser.version>
-        <spigot.version>1.8.8-R0.1-SNAPSHOT</spigot.version>
-        <bungee.version>1.15-SNAPSHOT</bungee.version>
-        <velocity.version>1.1.0-SNAPSHOT</velocity.version>
+  <packaging>pom</packaging>
 
-        <outputName>floodgate-${project.name}</outputName>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
-    </properties>
+  <properties>
+    <bungee.version>1.15-SNAPSHOT</bungee.version>
+    <geyser.version>1.1.0</geyser.version>
+    <maven.compiler.source>1.8</maven.compiler.source>
+    <maven.compiler.target>1.8</maven.compiler.target>
 
-    <organization>
-        <name>GeyserMC</name>
-        <url>https://geysermc.org/</url>
-    </organization>
+    <outputName>floodgate-${project.name}</outputName>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+    <spigot.version>1.8.8-R0.1-SNAPSHOT</spigot.version>
+    <velocity.version>1.1.0-SNAPSHOT</velocity.version>
+  </properties>
 
-    <scm>
-        <connection>scm:git:https://github.com/GeyserMC/Floodgate.git</connection>
-        <developerConnection>scm:git:git@github.com:GeyserMC/Floodgate.git</developerConnection>
-        <url>https://github.com/GeyserMC/Floodgate/</url>
-    </scm>
+  <scm>
+    <connection>scm:git:https://github.com/GeyserMC/Floodgate.git</connection>
+    <developerConnection>scm:git:git@github.com:GeyserMC/Floodgate.git</developerConnection>
+    <url>https://github.com/GeyserMC/Floodgate/</url>
+  </scm>
 
-    <distributionManagement>
-        <repository>
-            <id>releases</id>
-            <name>nukkitx-releases</name>
-            <url>https://repo.nukkitx.com/maven-releases</url>
-        </repository>
-        <snapshotRepository>
-            <id>snapshots</id>
-            <name>nukkitx-snapshots</name>
-            <url>https://repo.nukkitx.com/maven-snapshots</url>
-        </snapshotRepository>
-    </distributionManagement>
+  <url>https://github.com/GeyserMC/Floodgate</url>
 
-    <dependencies>
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <version>1.18.10</version>
-            <scope>provided</scope>
-        </dependency>
-    </dependencies>
+  <version>1.0-SNAPSHOT</version>
 </project>

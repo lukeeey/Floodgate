@@ -34,10 +34,10 @@ import org.geysermc.floodgate.platform.listener.ListenerRegistration;
 
 @RequiredArgsConstructor(onConstructor = @__(@Inject))
 public final class BungeeListenerRegistration implements ListenerRegistration<Listener> {
-    private final BungeePlugin plugin;
+  private final BungeePlugin plugin;
 
-    @Override
-    public void register(Listener listener) {
-        ProxyServer.getInstance().getPluginManager().registerListener(plugin, listener);
-    }
+  @Override
+  public void register(Listener listener) {
+    ProxyServer.getInstance().getPluginManager().registerListener(plugin, listener);
+  }
 }

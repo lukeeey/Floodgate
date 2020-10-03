@@ -27,71 +27,74 @@ package org.geysermc.floodgate.config;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.security.Key;
 import lombok.Getter;
 
-import java.security.Key;
-
 /**
- * The global Floodgate configuration file used in every platform.
- * Some platforms have their own addition to the global configuration like
- * {@link ProxyFloodgateConfig} for the proxies.
+ * The global Floodgate configuration file used in every platform. Some platforms have their own
+ * addition to the global configuration like {@link ProxyFloodgateConfig} for the proxies.
  */
 @Getter
 public class FloodgateConfig {
-    @JsonProperty(value = "key-file-name")
-    private String keyFileName;
-    @JsonProperty(value = "username-prefix")
-    private String usernamePrefix;
-    @JsonProperty(value = "replace-spaces")
-    private boolean replaceSpaces;
+  @JsonProperty(value = "key-file-name")
+  private String keyFileName;
 
-    @JsonProperty(value = "default-locale")
-    private String defaultLocale;
+  @JsonProperty(value = "username-prefix")
+  private String usernamePrefix;
 
-    @JsonProperty(value = "disconnect")
-    private DisconnectMessages messages;
+  @JsonProperty(value = "replace-spaces")
+  private boolean replaceSpaces;
 
-    @JsonProperty(value = "player-link")
-    private PlayerLinkConfig playerLink;
+  @JsonProperty(value = "default-locale")
+  private String defaultLocale;
 
-    @JsonProperty
-    private boolean debug;
+  @JsonProperty(value = "disconnect")
+  private DisconnectMessages messages;
 
-    @JsonProperty("config-version")
-    private boolean configVersion;
+  @JsonProperty(value = "player-link")
+  private PlayerLinkConfig playerLink;
 
-    @JsonIgnore
-    private Key key = null;
+  @JsonProperty private boolean debug;
 
-    @Getter
-    public static class DisconnectMessages {
-        @JsonProperty("invalid-key")
-        private String invalidKey;
-        @JsonProperty("invalid-arguments-length")
-        private String invalidArgumentsLength;
+  @JsonProperty("config-version")
+  private boolean configVersion;
+
+  @JsonIgnore private Key key = null;
+
+  public void setKey(Key key) {
+    if (this.key == null) {
+      this.key = key;
     }
+  }
 
-    @Getter
-    public static class PlayerLinkConfig {
-        @JsonProperty("enable")
-        private boolean enabled;
-        @JsonProperty("allow-linking")
-        private boolean allowLinking;
-        @JsonProperty("link-code-timeout")
-        private long linkCodeTimeout;
-        @JsonProperty("type")
-        private String type;
-        @JsonProperty("auto-download")
-        private boolean autoDownload;
-    }
+  public boolean isProxy() {
+    return this instanceof ProxyFloodgateConfig;
+  }
 
-    public void setKey(Key key) {
-        if (this.key == null) {
-            this.key = key;
-        }
-    }
+  @Getter
+  public static class DisconnectMessages {
+    @JsonProperty("invalid-key")
+    private String invalidKey;
 
-    public boolean isProxy() {
-        return this instanceof ProxyFloodgateConfig;
-    }
+    @JsonProperty("invalid-arguments-length")
+    private String invalidArgumentsLength;
+  }
+
+  @Getter
+  public static class PlayerLinkConfig {
+    @JsonProperty("enable")
+    private boolean enabled;
+
+    @JsonProperty("allow-linking")
+    private boolean allowLinking;
+
+    @JsonProperty("link-code-timeout")
+    private long linkCodeTimeout;
+
+    @JsonProperty("type")
+    private String type;
+
+    @JsonProperty("auto-download")
+    private boolean autoDownload;
+  }
 }

@@ -26,12 +26,10 @@
 package org.geysermc.floodgate.platform.command;
 
 /**
- * CommandMessage is the interface of a message that can be send to a command source after
- * executing a command. Messages are generally implemented using enums.
+ * CommandMessage is the interface of a message that can be send to a command source after executing
+ * a command. Messages are generally implemented using enums.
  */
 public interface CommandMessage {
-    /**
-     * Returns the message attached to the enum identifier
-     */
-    String getMessage();
+  /** Returns the message attached to the enum identifier */
+  String getMessage();
 }

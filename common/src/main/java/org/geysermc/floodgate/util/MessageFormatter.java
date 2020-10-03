@@ -26,53 +26,59 @@
 package org.geysermc.floodgate.util;
 
 public final class MessageFormatter {
-    private static final String DELIM_STR = "{}";
-    private static final int DELIM_LENGTH = DELIM_STR.length();
+  private static final String DELIM_STR = "{}";
+  private static final int DELIM_LENGTH = DELIM_STR.length();
 
-    public static String format(String message, Object... arguments) {
-        // simple variant of slf4j's parameters.
-        if (arguments == null || arguments.length == 0) return message;
-
-        String[] args = new String[arguments.length];
-        for (int i = 0; i < arguments.length; i++) {
-            args[i] = arguments[i].toString();
-        }
-
-        int previousIndex = -1;
-        int currentIndex;
-        StringBuilder stringBuilder = new StringBuilder(
-                message.length() + getArgsContentLength(args)
-        );
-
-        for (String argument : args) {
-            currentIndex = message.indexOf(DELIM_STR, previousIndex);
-            if (currentIndex == -1) {
-                // no parameter places left in message,
-                // we'll ignore the remaining parameters and return the message
-                if (previousIndex == -1) return message;
-                else {
-                    stringBuilder.append(message.substring(previousIndex));
-                    return stringBuilder.toString();
-                }
-            }
-
-            if (previousIndex == -1) stringBuilder.append(message, 0, currentIndex);
-            else stringBuilder.append(message, previousIndex, currentIndex);
-            stringBuilder.append(argument);
-
-            // we finished this argument, so we're past the current delimiter
-            previousIndex = currentIndex + DELIM_LENGTH;
-        }
-
-        if (previousIndex != message.length())
-            stringBuilder.append(message, previousIndex, message.length());
-        return stringBuilder.toString();
+  public static String format(String message, Object... arguments) {
+    // simple variant of slf4j's parameters.
+    if (arguments == null || arguments.length == 0) {
+      return message;
     }
 
-    public static int getArgsContentLength(String... args) {
-        int length = 0;
-        for (String arg : args)
-            length += arg.length();
-        return length;
+    String[] args = new String[arguments.length];
+    for (int i = 0; i < arguments.length; i++) {
+      args[i] = arguments[i].toString();
     }
+
+    int previousIndex = -1;
+    int currentIndex;
+    StringBuilder stringBuilder = new StringBuilder(message.length() + getArgsContentLength(args));
+
+    for (String argument : args) {
+      currentIndex = message.indexOf(DELIM_STR, previousIndex);
+      if (currentIndex == -1) {
+        // no parameter places left in message,
+        // we'll ignore the remaining parameters and return the message
+        if (previousIndex == -1) {
+          return message;
+        } else {
+          stringBuilder.append(message.substring(previousIndex));
+          return stringBuilder.toString();
+        }
+      }
+
+      if (previousIndex == -1) {
+        stringBuilder.append(message, 0, currentIndex);
+      } else {
+        stringBuilder.append(message, previousIndex, currentIndex);
+      }
+      stringBuilder.append(argument);
+
+      // we finished this argument, so we're past the current delimiter
+      previousIndex = currentIndex + DELIM_LENGTH;
+    }
+
+    if (previousIndex != message.length()) {
+      stringBuilder.append(message, previousIndex, message.length());
+    }
+    return stringBuilder.toString();
+  }
+
+  public static int getArgsContentLength(String... args) {
+    int length = 0;
+    for (String arg : args) {
+      length += arg.length();
+    }
+    return length;
+  }
 }

@@ -42,94 +42,94 @@ import org.geysermc.floodgate.inject.spigot.SpigotInjector;
 import org.geysermc.floodgate.listener.SpigotListenerRegistration;
 import org.geysermc.floodgate.logger.JavaUtilFloodgateLogger;
 import org.geysermc.floodgate.platform.command.CommandRegistration;
-import org.geysermc.floodgate.platform.listener.ListenerRegistration;
 import org.geysermc.floodgate.platform.command.CommandUtil;
+import org.geysermc.floodgate.platform.listener.ListenerRegistration;
 import org.geysermc.floodgate.util.LanguageManager;
 import org.geysermc.floodgate.util.SpigotCommandUtil;
 
 @RequiredArgsConstructor
 public final class SpigotPlatformModule extends AbstractModule {
-    private final SpigotPlugin plugin;
+  private final SpigotPlugin plugin;
 
-    @Provides
-    @Singleton
-    public JavaPlugin javaPlugin() {
-        return plugin;
-    }
+  @Provides
+  @Singleton
+  public JavaPlugin javaPlugin() {
+    return plugin;
+  }
 
-    @Provides
-    @Singleton
-    @Named("configClass")
-    public Class<? extends FloodgateConfig> floodgateConfigClass() {
-        return FloodgateConfig.class;
-    }
+  @Provides
+  @Singleton
+  @Named("configClass")
+  public Class<? extends FloodgateConfig> floodgateConfigClass() {
+    return FloodgateConfig.class;
+  }
 
-    @Provides
-    @Singleton
-    public SimpleFloodgateApi floodgateApi() {
-        return new SimpleFloodgateApi();
-    }
+  @Provides
+  @Singleton
+  public SimpleFloodgateApi floodgateApi() {
+    return new SimpleFloodgateApi();
+  }
 
-    @Provides
-    @Singleton
-    public FloodgateLogger floodgateLogger() {
-        return new JavaUtilFloodgateLogger(plugin.getLogger());
-    }
+  @Provides
+  @Singleton
+  public FloodgateLogger floodgateLogger() {
+    return new JavaUtilFloodgateLogger(plugin.getLogger());
+  }
 
-    /*
-    Commands / Listeners
-     */
+  /*
+  Commands / Listeners
+   */
 
-    @Provides
-    @Singleton
-    public CommandRegistration commandRegistration(CommandUtil commandUtil,
-                                                   LanguageManager languageManager) {
-        return new SpigotCommandRegistration(plugin, commandUtil, languageManager);
-    }
+  @Provides
+  @Singleton
+  public CommandRegistration commandRegistration(
+      CommandUtil commandUtil, LanguageManager languageManager) {
+    return new SpigotCommandRegistration(plugin, commandUtil, languageManager);
+  }
 
-    @Provides
-    @Singleton
-    public CommandUtil commandUtil(FloodgateLogger logger, LanguageManager languageManager) {
-        return new SpigotCommandUtil(plugin, logger, languageManager);
-    }
+  @Provides
+  @Singleton
+  public CommandUtil commandUtil(FloodgateLogger logger, LanguageManager languageManager) {
+    return new SpigotCommandUtil(plugin, logger, languageManager);
+  }
 
-    @Provides
-    @Singleton
-    public ListenerRegistration<Listener> listenerRegistration() {
-        return new SpigotListenerRegistration(plugin);
-    }
+  @Provides
+  @Singleton
+  public ListenerRegistration<Listener> listenerRegistration() {
+    return new SpigotListenerRegistration(plugin);
+  }
 
-    /*
-    DebugAddon / PlatformInjector
-     */
+  /*
+  DebugAddon / PlatformInjector
+   */
 
-    @Provides
-    @Singleton
-    public CommonPlatformInjector platformInjector() {
-        return new SpigotInjector();
-    }
+  @Provides
+  @Singleton
+  public CommonPlatformInjector platformInjector() {
+    return new SpigotInjector();
+  }
 
-    @Provides
-    @Named("packetEncoder")
-    public String packetEncoder() {
-        return "encoder";
-    }
+  @Provides
+  @Named("packetEncoder")
+  public String packetEncoder() {
+    return "encoder";
+  }
 
-    @Provides
-    @Named("packetDecoder")
-    public String packetDecoder() {
-        return "decoder";
-    }
+  @Provides
+  @Named("packetDecoder")
+  public String packetDecoder() {
+    return "decoder";
+  }
 
-    @Provides
-    @Named("packetHandler")
-    public String packetHandler() {
-        return "packet_handler";
-    }
+  @Provides
+  @Named("packetHandler")
+  public String packetHandler() {
+    return "packet_handler";
+  }
 
-    @Provides
-    @Named("implementationName")
-    public String implementationName() {
-        return "Spigot";
-    }
+  @Provides
+  @Named("implementationName")
+  public String implementationName() {
+    return "Spigot";
+  }
 }

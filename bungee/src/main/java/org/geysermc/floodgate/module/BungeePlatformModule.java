@@ -52,92 +52,94 @@ import org.geysermc.floodgate.util.LanguageManager;
 
 @RequiredArgsConstructor
 public final class BungeePlatformModule extends AbstractModule {
-    private final BungeePlugin plugin;
+  private final BungeePlugin plugin;
 
-    @Override
-    protected void configure() {
-        bind(SimpleFloodgateApi.class).to(ProxyFloodgateApi.class);
-    }
+  @Override
+  protected void configure() {
+    bind(SimpleFloodgateApi.class).to(ProxyFloodgateApi.class);
+  }
 
-    @Provides
-    @Singleton
-    public Plugin bungeePlugin() {
-        return plugin;
-    }
+  @Provides
+  @Singleton
+  public Plugin bungeePlugin() {
+    return plugin;
+  }
 
-    @Provides
-    @Singleton
-    @Named("configClass")
-    public Class<? extends FloodgateConfig> floodgateConfigClass() {
-        return ProxyFloodgateConfig.class;
-    }
+  @Provides
+  @Singleton
+  @Named("configClass")
+  public Class<? extends FloodgateConfig> floodgateConfigClass() {
+    return ProxyFloodgateConfig.class;
+  }
 
-    @Provides
-    @Singleton
-    public ProxyFloodgateApi proxyFloodgateApi(FloodgateCipher cipher) {
-        return new ProxyFloodgateApi(cipher);
-    }
+  @Provides
+  @Singleton
+  public ProxyFloodgateApi proxyFloodgateApi(FloodgateCipher cipher) {
+    return new ProxyFloodgateApi(cipher);
+  }
 
-    @Provides
-    @Singleton
-    public FloodgateLogger floodgateLogger() {
-        return new JavaUtilFloodgateLogger(plugin.getLogger());
-    }
+  @Provides
+  @Singleton
+  public FloodgateLogger floodgateLogger() {
+    return new JavaUtilFloodgateLogger(plugin.getLogger());
+  }
 
-    /*
-    Commands / Listeners
-     */
+  /*
+  Commands / Listeners
+   */
 
-    @Provides
-    @Singleton
-    public CommandRegistration commandRegistration(CommandUtil commandUtil,
-                                                   LanguageManager languageManager) {
-        return new BungeeCommandRegistration(plugin, commandUtil, languageManager);
-    }
+  @Provides
+  @Singleton
+  public CommandRegistration commandRegistration(
+      CommandUtil commandUtil, LanguageManager languageManager) {
 
-    @Provides
-    @Singleton
-    public CommandUtil commandUtil(FloodgateLogger logger, LanguageManager languageManager) {
-        return new BungeeCommandUtil(logger, languageManager);
-    }
+    String defaultLocale = languageManager.getDefaultLocale();
+    return new BungeeCommandRegistration(plugin, commandUtil, defaultLocale);
+  }
 
-    @Provides
-    @Singleton
-    public ListenerRegistration<Listener> listenerRegistration() {
-        return new BungeeListenerRegistration(plugin);
-    }
+  @Provides
+  @Singleton
+  public CommandUtil commandUtil(FloodgateLogger logger, LanguageManager languageManager) {
+    return new BungeeCommandUtil(logger, languageManager);
+  }
 
-    /*
-    DebugAddon / PlatformInjector
-     */
+  @Provides
+  @Singleton
+  public ListenerRegistration<Listener> listenerRegistration() {
+    return new BungeeListenerRegistration(plugin);
+  }
 
-    @Provides
-    @Singleton
-    public CommonPlatformInjector platformInjector(FloodgateLogger logger) {
-        return new BungeeInjector(logger);
-    }
+  /*
+  DebugAddon / PlatformInjector
+   */
 
-    @Provides
-    @Named("packetEncoder")
-    public String packetEncoder() {
-        return "packet-encoder";
-    }
+  @Provides
+  @Singleton
+  public CommonPlatformInjector platformInjector(FloodgateLogger logger) {
+    return new BungeeInjector(logger);
+  }
 
-    @Provides
-    @Named("packetDecoder")
-    public String packetDecoder() {
-        return "packet-decoder";
-    }
+  @Provides
+  @Named("packetEncoder")
+  public String packetEncoder() {
+    return "packet-encoder";
+  }
 
-    @Provides
-    @Named("packetHandler")
-    public String packetHandler() {
-        return "inbound-boss";
-    }
+  @Provides
+  @Named("packetDecoder")
+  public String packetDecoder() {
+    return "packet-decoder";
+  }
 
-    @Provides
-    @Named("implementationName")
-    public String implementationName() {
-        return "Bungeecord";
-    }
+  @Provides
+  @Named("packetHandler")
+  public String packetHandler() {
+    return "inbound-boss";
+  }
+
+  @Provides
+  @Named("implementationName")
+  public String implementationName() {
+    return "Bungeecord";
+  }
 }

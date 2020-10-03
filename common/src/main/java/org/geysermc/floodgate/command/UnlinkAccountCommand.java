@@ -26,6 +26,7 @@
 package org.geysermc.floodgate.command;
 
 import com.google.inject.Inject;
+import java.util.UUID;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.geysermc.floodgate.api.FloodgateApi;
@@ -34,73 +35,73 @@ import org.geysermc.floodgate.platform.command.Command;
 import org.geysermc.floodgate.platform.command.CommandMessage;
 import org.geysermc.floodgate.platform.command.CommandUtil;
 
-import java.util.UUID;
-
 @NoArgsConstructor
 public final class UnlinkAccountCommand implements Command {
-    @Inject private FloodgateApi api;
-    @Inject private CommandUtil commandUtil;
+  @Inject private FloodgateApi api;
+  @Inject private CommandUtil commandUtil;
 
-    @Override
-    public void execute(Object player, UUID uuid, String username, String locale, String... args) {
-        PlayerLink link = api.getPlayerLink();
-        if (!link.isEnabledAndAllowed()) {
-            sendMessage(player, locale, Message.LINKING_NOT_ENABLED);
-            return;
-        }
+  @Override
+  public void execute(Object player, UUID uuid, String username, String locale, String... args) {
+    PlayerLink link = api.getPlayerLink();
+    if (!link.isEnabledAndAllowed()) {
+      sendMessage(player, locale, Message.LINKING_NOT_ENABLED);
+      return;
+    }
 
-        link.isLinkedPlayer(uuid).whenComplete((linked, throwable) -> {
-            if (throwable != null) {
+    link.isLinkedPlayer(uuid)
+        .whenComplete(
+            (linked, throwable) -> {
+              if (throwable != null) {
                 sendMessage(player, locale, CommonCommandMessage.IS_LINKED_ERROR);
                 return;
-            }
+              }
 
-            if (!linked) {
+              if (!linked) {
                 sendMessage(player, locale, Message.NOT_LINKED);
                 return;
-            }
+              }
 
-            link.unlinkPlayer(uuid).whenComplete((aVoid, throwable1) ->
-                    sendMessage(player, locale,
-                            throwable1 == null ?
-                                    Message.UNLINK_SUCCESS :
-                                    Message.UNLINK_ERROR
-                    )
-            );
-        });
+              link.unlinkPlayer(uuid)
+                  .whenComplete(
+                      (unused, throwable1) -> {
+                        Message message =
+                            throwable1 == null ? Message.UNLINK_SUCCESS : Message.UNLINK_ERROR;
+
+                        sendMessage(player, locale, message);
+                      });
+            });
+  }
+
+  @Override
+  public String getName() {
+    return "unlinkaccount";
+  }
+
+  @Override
+  public String getPermission() {
+    return "floodgate.unlinkaccount";
+  }
+
+  @Override
+  public boolean isRequirePlayer() {
+    return true;
+  }
+
+  private void sendMessage(Object player, String locale, CommandMessage message, Object... args) {
+    commandUtil.sendMessage(player, locale, message, args);
+  }
+
+  public enum Message implements CommandMessage {
+    NOT_LINKED("floodgate.command.unlink_account.not_linked"),
+    UNLINK_SUCCESS("floodgate.command.unlink_account.unlink_success"),
+    // TODO also used to have CHECK_CONSOLE
+    UNLINK_ERROR("floodgate.command.unlink_account.error"),
+    LINKING_NOT_ENABLED("floodgate.commands.linking_disabled");
+
+    @Getter private final String message;
+
+    Message(String message) {
+      this.message = message;
     }
-
-    @Override
-    public String getName() {
-        return "unlinkaccount";
-    }
-
-    @Override
-    public String getPermission() {
-        return "floodgate.unlinkaccount";
-    }
-
-    @Override
-    public boolean isRequirePlayer() {
-        return true;
-    }
-
-    private void sendMessage(Object player, String locale, CommandMessage message, Object... args) {
-        commandUtil.sendMessage(player, locale, message, args);
-    }
-
-    public enum Message implements CommandMessage {
-        NOT_LINKED("floodgate.command.unlink_account.not_linked"),
-        UNLINK_SUCCESS("floodgate.command.unlink_account.unlink_success"),
-        // TODO also used to have CHECK_CONSOLE
-        UNLINK_ERROR("floodgate.command.unlink_account.error"),
-        LINKING_NOT_ENABLED("floodgate.commands.linking_disabled");
-
-        @Getter
-        private final String message;
-
-        Message(String message) {
-            this.message = message;
-        }
-    }
+  }
 }

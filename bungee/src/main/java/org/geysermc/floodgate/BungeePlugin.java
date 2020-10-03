@@ -28,40 +28,41 @@ package org.geysermc.floodgate;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import net.md_5.bungee.api.plugin.Plugin;
-import org.geysermc.floodgate.module.*;
+import org.geysermc.floodgate.module.BungeeAddonModule;
+import org.geysermc.floodgate.module.BungeeListenerModule;
+import org.geysermc.floodgate.module.BungeePlatformModule;
+import org.geysermc.floodgate.module.CommandModule;
+import org.geysermc.floodgate.module.CommonModule;
 import org.geysermc.floodgate.util.ReflectionUtils;
 
 public final class BungeePlugin extends Plugin {
-    private FloodgatePlatform platform;
+  private FloodgatePlatform platform;
 
-    @Override
-    public void onLoad() {
-        ReflectionUtils.setPrefix("net.md_5.bungee");
+  @Override
+  public void onLoad() {
+    ReflectionUtils.setPrefix("net.md_5.bungee");
 
-        long ctm = System.currentTimeMillis();
-        Injector injector = Guice.createInjector(
-                new CommonModule(getDataFolder().toPath()),
-                new BungeePlatformModule(this)
-        );
+    long ctm = System.currentTimeMillis();
+    Injector injector =
+        Guice.createInjector(
+            new CommonModule(getDataFolder().toPath()), new BungeePlatformModule(this));
 
-        // Bungeecord doesn't have a build-in function to disable plugins,
-        // so there is no need to have a custom Platform class like Spigot
-        platform = injector.getInstance(FloodgatePlatform.class);
+    // Bungeecord doesn't have a build-in function to disable plugins,
+    // so there is no need to have a custom Platform class like Spigot
+    platform = injector.getInstance(FloodgatePlatform.class);
 
-        long endCtm = System.currentTimeMillis();
-        getLogger().info(platform.getLanguageManager().getLogString(
-                "floodgate.core.finish",
-                endCtm - ctm
-        ));
-    }
+    long endCtm = System.currentTimeMillis();
+    getLogger()
+        .info(platform.getLanguageManager().getLogString("floodgate.core.finish", endCtm - ctm));
+  }
 
-    @Override
-    public void onEnable() {
-        platform.enable(new CommandModule(), new BungeeListenerModule(), new BungeeAddonModule());
-    }
+  @Override
+  public void onEnable() {
+    platform.enable(new CommandModule(), new BungeeListenerModule(), new BungeeAddonModule());
+  }
 
-    @Override
-    public void onDisable() {
-        platform.disable();
-    }
+  @Override
+  public void onDisable() {
+    platform.disable();
+  }
 }

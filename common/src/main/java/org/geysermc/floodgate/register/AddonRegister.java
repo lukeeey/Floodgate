@@ -27,20 +27,19 @@ package org.geysermc.floodgate.register;
 
 import com.google.inject.Inject;
 import com.google.inject.Injector;
+import java.util.Set;
 import org.geysermc.floodgate.api.inject.InjectorAddon;
 import org.geysermc.floodgate.api.inject.PlatformInjector;
 
-import java.util.Set;
-
 public final class AddonRegister {
-    @Inject private Injector guice;
-    @Inject private PlatformInjector injector;
+  @Inject private Injector guice;
+  @Inject private PlatformInjector injector;
 
-    @Inject
-    public void registerAddons(Set<InjectorAddon> addons) {
-        for (InjectorAddon addon : addons) {
-            guice.injectMembers(addon);
-            injector.addAddon(addon);
-        }
+  @Inject
+  public void registerAddons(Set<InjectorAddon> addons) {
+    for (InjectorAddon addon : addons) {
+      guice.injectMembers(addon);
+      injector.addAddon(addon);
     }
+  }
 }

@@ -28,39 +28,40 @@ package org.geysermc.floodgate;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.geysermc.floodgate.module.*;
+import org.geysermc.floodgate.module.CommandModule;
+import org.geysermc.floodgate.module.CommonModule;
+import org.geysermc.floodgate.module.SpigotAddonModule;
+import org.geysermc.floodgate.module.SpigotListenerModule;
+import org.geysermc.floodgate.module.SpigotPlatformModule;
 import org.geysermc.floodgate.util.ReflectionUtils;
 
 public final class SpigotPlugin extends JavaPlugin {
-    private SpigotPlatform platform;
+  private SpigotPlatform platform;
 
-    @Override
-    public void onLoad() {
-        String minecraftVersion = getServer().getClass().getPackage().getName().split("\\.")[3];
-        ReflectionUtils.setPrefix("net.minecraft.server." + minecraftVersion);
+  @Override
+  public void onLoad() {
+    String minecraftVersion = getServer().getClass().getPackage().getName().split("\\.")[3];
+    ReflectionUtils.setPrefix("net.minecraft.server." + minecraftVersion);
 
-        long ctm = System.currentTimeMillis();
-        Injector injector = Guice.createInjector(
-                new CommonModule(getDataFolder().toPath()),
-                new SpigotPlatformModule(this)
-        );
+    long ctm = System.currentTimeMillis();
+    Injector injector =
+        Guice.createInjector(
+            new CommonModule(getDataFolder().toPath()), new SpigotPlatformModule(this));
 
-        platform = injector.getInstance(SpigotPlatform.class);
+    platform = injector.getInstance(SpigotPlatform.class);
 
-        long endCtm = System.currentTimeMillis();
-        getLogger().info(platform.getLanguageManager().getLogString(
-                "floodgate.core.finish",
-                endCtm - ctm
-        ));
-    }
+    long endCtm = System.currentTimeMillis();
+    getLogger()
+        .info(platform.getLanguageManager().getLogString("floodgate.core.finish", endCtm - ctm));
+  }
 
-    @Override
-    public void onEnable() {
-        platform.enable(new CommandModule(), new SpigotListenerModule(), new SpigotAddonModule());
-    }
+  @Override
+  public void onEnable() {
+    platform.enable(new CommandModule(), new SpigotListenerModule(), new SpigotAddonModule());
+  }
 
-    @Override
-    public void onDisable() {
-        platform.disable();
-    }
+  @Override
+  public void onDisable() {
+    platform.disable();
+  }
 }

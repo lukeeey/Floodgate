@@ -28,7 +28,7 @@ package org.geysermc.floodgate.addon.data;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import io.netty.channel.Channel;
-import io.netty.channel.EventLoop;
+import io.netty.channel.ChannelPipeline;
 import io.netty.util.AttributeKey;
 import org.geysermc.floodgate.HandshakeHandler;
 import org.geysermc.floodgate.api.ProxyFloodgateApi;
@@ -37,62 +37,56 @@ import org.geysermc.floodgate.api.logger.FloodgateLogger;
 import org.geysermc.floodgate.api.player.FloodgatePlayer;
 import org.geysermc.floodgate.config.ProxyFloodgateConfig;
 
-import java.util.HashMap;
-import java.util.Map;
-
 public final class VelocityDataAddon implements InjectorAddon {
-    @Inject private HandshakeHandler handshakeHandler;
-    @Inject private ProxyFloodgateConfig config;
-    @Inject private ProxyFloodgateApi api;
-    @Inject private FloodgateLogger logger;
+  @Inject private HandshakeHandler handshakeHandler;
+  @Inject private ProxyFloodgateConfig config;
+  @Inject private ProxyFloodgateApi api;
+  @Inject private FloodgateLogger logger;
 
-    @Inject
-    @Named("packetHandler")
-    private String packetHandler;
+  @Inject
+  @Named("packetHandler")
+  private String packetHandler;
 
-    @Inject
-    @Named("packetEncoder")
-    private String packetEncoder;
+  @Inject
+  @Named("packetEncoder")
+  private String packetEncoder;
 
-    @Inject
-    @Named("playerAttribute")
-    private AttributeKey<FloodgatePlayer> playerAttribute;
+  @Inject
+  @Named("playerAttribute")
+  private AttributeKey<FloodgatePlayer> playerAttribute;
 
-    @Inject
-    @Named("kickMessageAttribute")
-    private AttributeKey<String> kickMessageAttribute;
+  @Inject
+  @Named("kickMessageAttribute")
+  private AttributeKey<String> kickMessageAttribute;
 
-    @Override
-    public void onInject(Channel channel, boolean proxyToServer) {
-        if (proxyToServer) {
-            channel.pipeline().addAfter(
-                    packetEncoder, "floodgate_data_handler",
-                    new VelocityServerDataHandler(config, api)
-            );
-            return;
-        }
-        // The handler is already added so we should add our handler before it
-        channel.pipeline().addBefore(
-                packetHandler, "floodgate_data_handler",
-                new VelocityProxyDataHandler(
-                        config, api, handshakeHandler, playerAttribute,
-                        kickMessageAttribute, logger
-                )
-        );
+  @Override
+  public void onInject(Channel channel, boolean toServer) {
+    ChannelPipeline pipeline = channel.pipeline();
+    if (toServer) {
+      pipeline.addAfter(
+          packetEncoder, "floodgate_data_handler", new VelocityServerDataHandler(config, api));
+      return;
     }
+    // The handler is already added so we should add our handler before it
+    pipeline.addBefore(
+        packetHandler,
+        "floodgate_data_handler",
+        new VelocityProxyDataHandler(
+            config, api, handshakeHandler, playerAttribute, kickMessageAttribute, logger));
+  }
 
-    @Override
-    public void onLoginDone(Channel channel) {
-        onRemoveInject(channel);
-    }
+  @Override
+  public void onLoginDone(Channel channel) {
+    onRemoveInject(channel);
+  }
 
-    @Override
-    public void onRemoveInject(Channel channel) {
-        channel.pipeline().remove("floodgate_data_handler");
-    }
+  @Override
+  public void onRemoveInject(Channel channel) {
+    channel.pipeline().remove("floodgate_data_handler");
+  }
 
-    @Override
-    public boolean shouldInject() {
-        return true;
-    }
+  @Override
+  public boolean shouldInject() {
+    return true;
+  }
 }

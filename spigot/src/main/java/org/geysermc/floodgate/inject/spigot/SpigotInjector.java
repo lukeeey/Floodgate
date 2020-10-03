@@ -25,137 +25,158 @@
 
 package org.geysermc.floodgate.inject.spigot;
 
-import io.netty.channel.*;
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelHandler;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.channel.ChannelInitializer;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.geysermc.floodgate.inject.CommonPlatformInjector;
 import org.geysermc.floodgate.util.ReflectionUtils;
 
-import java.lang.reflect.*;
-import java.util.*;
-
 @RequiredArgsConstructor
 public final class SpigotInjector extends CommonPlatformInjector {
-    private Object serverConnection;
-    private final Set<Channel> injectedClients = new HashSet<>();
+  private final Set<Channel> injectedClients = new HashSet<>();
+  private Object serverConnection;
+  @Getter private boolean injected = false;
+  private String injectedFieldName;
 
-    @Getter private boolean injected = false;
-    private String injectedFieldName;
+  @Override
+  @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
+  public boolean inject() throws Exception {
+    if (isInjected()) {
+      return true;
+    }
 
-    @Override
-    @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
-    public boolean inject() throws Exception {
-        if (isInjected()) {
-            return true;
-        }
+    if (getServerConnection() != null) {
+      for (Field f : serverConnection.getClass().getDeclaredFields()) {
+        if (f.getType() == List.class) {
+          f.setAccessible(true);
 
-        if (getServerConnection() != null) {
-            for (Field f : serverConnection.getClass().getDeclaredFields()) {
-                if (f.getType() == List.class) {
-                    f.setAccessible(true);
+          ParameterizedType parameterType = ((ParameterizedType) f.getGenericType());
+          Type listType = parameterType.getActualTypeArguments()[0];
 
-                    ParameterizedType parameterType = ((ParameterizedType) f.getGenericType());
-                    Type listType = parameterType.getActualTypeArguments()[0];
+          // the list we search has ChannelFuture as type
+          if (listType != ChannelFuture.class) {
+            continue;
+          }
 
-                    // the list we search has ChannelFuture as type
-                    if (listType != ChannelFuture.class) {
-                        continue;
-                    }
-
-                    injectedFieldName = f.getName();
-                    List<?> newList = new CustomList((List<?>) f.get(serverConnection)) {
-                        @Override
-                        public void onAdd(Object o) {
-                            try {
-                                injectClient((ChannelFuture) o);
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                            }
-                        }
-                    };
-
-                    // inject existing
-                    synchronized (newList) {
-                        for (Object o : newList) {
-                            try {
-                                injectClient((ChannelFuture) o);
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                            }
-                        }
-                    }
-
-                    f.set(serverConnection, newList);
-                    injected = true;
-                    return true;
+          injectedFieldName = f.getName();
+          List<?> newList =
+              new CustomList((List<?>) f.get(serverConnection)) {
+                @Override
+                public void onAdd(Object o) {
+                  try {
+                    injectClient((ChannelFuture) o);
+                  } catch (Exception e) {
+                    e.printStackTrace();
+                  }
                 }
+              };
+
+          // inject existing
+          synchronized (newList) {
+            for (Object o : newList) {
+              try {
+                injectClient((ChannelFuture) o);
+              } catch (Exception e) {
+                e.printStackTrace();
+              }
             }
+          }
+
+          f.set(serverConnection, newList);
+          injected = true;
+          return true;
         }
-        return false;
+      }
+    }
+    return false;
+  }
+
+  public void injectClient(ChannelFuture future) {
+    ChannelHandler handler =
+        new ChannelInboundHandlerAdapter() {
+          @Override
+          public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+            super.channelRead(ctx, msg);
+
+            ChannelInitializer<Channel> initializer =
+                new ChannelInitializer<Channel>() {
+                  @Override
+                  protected void initChannel(Channel channel) {
+                    injectAddonsCall(channel, false);
+                    injectedClients.add(channel);
+                  }
+                };
+
+            ((Channel) msg).pipeline().addLast(initializer);
+          }
+        };
+
+    future.channel().pipeline().addFirst("floodgate-init", handler);
+  }
+
+  @Override
+  public boolean removeInjection() throws Exception {
+    if (!isInjected()) {
+      return true;
     }
 
-    public void injectClient(ChannelFuture future) {
-        future.channel().pipeline().addFirst("floodgate-init", new ChannelInboundHandlerAdapter() {
-            @Override
-            public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-                super.channelRead(ctx, msg);
+    // remove injection from clients
+    for (Channel channel : injectedClients) {
+      removeAddonsCall(channel);
+    }
+    injectedClients.clear();
 
-                Channel channel = (Channel) msg;
-                channel.pipeline().addLast(new ChannelInitializer<Channel>() {
-                    @Override
-                    protected void initChannel(Channel channel) {
-                        injectAddonsCall(channel, false);
-                        injectedClients.add(channel);
-                    }
-                });
-            }
-        });
+    // and change the list back to the original
+    Object serverConnection = getServerConnection();
+    if (serverConnection != null) {
+      Field field = ReflectionUtils.getField(serverConnection.getClass(), injectedFieldName);
+      List<?> list = (List<?>) ReflectionUtils.getValue(serverConnection, field);
+
+      if (list instanceof CustomList) {
+        CustomList customList = (CustomList) list;
+        ReflectionUtils.setValue(serverConnection, field, customList.getOriginalList());
+        customList.clear();
+        customList.addAll(list);
+      }
     }
 
-    @Override
-    public boolean removeInjection() throws Exception {
-        if (!isInjected()) {
-            return true;
-        }
+    injectedFieldName = null;
+    injected = false;
+    return true;
+  }
 
-        // remove injection from clients
-        for (Channel channel : injectedClients) {
-            removeAddonsCall(channel);
-        }
-        injectedClients.clear();
-
-        // and change the list back to the original
-        Object serverConnection = getServerConnection();
-        if (serverConnection != null) {
-            Field field = ReflectionUtils.getField(serverConnection.getClass(), injectedFieldName);
-            List<?> list = (List<?>) ReflectionUtils.getValue(serverConnection, field);
-            if (list instanceof CustomList) {
-                CustomList customList = (CustomList) list;
-                ReflectionUtils.setValue(serverConnection, field, customList.getOriginalList());
-                customList.clear();
-                customList.addAll(list);
-            }
-        }
-
-        injectedFieldName = null;
-        injected = false;
-        return true;
+  public Object getServerConnection() throws IllegalAccessException, InvocationTargetException {
+    if (serverConnection != null) {
+      return serverConnection;
     }
 
-    public Object getServerConnection() throws IllegalAccessException, InvocationTargetException {
-        if (serverConnection != null) return serverConnection;
-        Class<?> minecraftServer = ReflectionUtils.getPrefixedClass("MinecraftServer");
-        assert minecraftServer != null;
+    Class<?> minecraftServer = ReflectionUtils.getPrefixedClass("MinecraftServer");
+    checkNotNull(minecraftServer, "MinecraftServer class cannot be null");
 
-        Object minecraftServerInstance = ReflectionUtils.invokeStatic(minecraftServer, "getServer");
-        for (Method m : minecraftServer.getDeclaredMethods()) {
-            if (m.getReturnType().getSimpleName().equals("ServerConnection")) {
-                if (m.getParameterTypes().length == 0) {
-                    serverConnection = m.invoke(minecraftServerInstance);
-                }
-            }
+    Object minecraftServerInstance = ReflectionUtils.invokeStatic(minecraftServer, "getServer");
+    for (Method m : minecraftServer.getDeclaredMethods()) {
+      if (m.getReturnType().getSimpleName().equals("ServerConnection")) {
+        if (m.getParameterTypes().length == 0) {
+          serverConnection = m.invoke(minecraftServerInstance);
         }
-
-        return serverConnection;
+      }
     }
+
+    return serverConnection;
+  }
 }

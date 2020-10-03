@@ -34,51 +34,51 @@ import org.geysermc.floodgate.inject.CommonPlatformInjector;
 
 @RequiredArgsConstructor
 public final class AddonManagerHandler extends MessageToByteEncoder<ByteBuf> {
-    private final CommonPlatformInjector injector;
-    private final Channel channel;
+  private final CommonPlatformInjector injector;
+  private final Channel channel;
 
-    private boolean loggedIn;
-    private boolean removed;
+  private boolean loggedIn;
+  private boolean removed;
 
-    @Override
-    public void handlerRemoved(ChannelHandlerContext ctx) {
-        // without this check, addons will be removed twice
-        if (!removed) {
-            removed = true;
-            injector.removeAddonsCall(channel);
-        }
+  @Override
+  public void handlerRemoved(ChannelHandlerContext ctx) {
+    // without this check, addons will be removed twice
+    if (!removed) {
+      removed = true;
+      injector.removeAddonsCall(channel);
+    }
+  }
+
+  @Override
+  protected void encode(ChannelHandlerContext ctx, ByteBuf msg, ByteBuf out) {
+    if (loggedIn) {
+      out.writeBytes(msg);
+      return;
     }
 
-    @Override
-    protected void encode(ChannelHandlerContext ctx, ByteBuf msg, ByteBuf out) {
-        if (loggedIn) {
-            out.writeBytes(msg);
-            return;
-        }
-
-        int index = msg.readerIndex();
-        // LoginSuccess packet = 2
-        if (readVarInt(msg) == 2) {
-            loggedIn = true;
-            injector.loginSuccessCall(channel);
-        }
-
-        msg.readerIndex(index);
-        out.writeBytes(msg);
+    int index = msg.readerIndex();
+    // LoginSuccess packet = 2
+    if (readVarInt(msg) == 2) {
+      loggedIn = true;
+      injector.loginSuccessCall(channel);
     }
 
-    private int readVarInt(ByteBuf buffer) {
-        int out = 0;
-        int count = 0;
-        byte current;
-        do {
-            current = buffer.readByte();
-            out |= (current & 0x7F) << (count++ * 7);
+    msg.readerIndex(index);
+    out.writeBytes(msg);
+  }
 
-            if (count > 5) {
-                throw new RuntimeException("VarInt is bigger then allowed");
-            }
-        } while ((current & 0x80) != 0);
-        return out;
-    }
+  private int readVarInt(ByteBuf buffer) {
+    int out = 0;
+    int count = 0;
+    byte current;
+    do {
+      current = buffer.readByte();
+      out |= (current & 0x7F) << (count++ * 7);
+
+      if (count > 5) {
+        throw new RuntimeException("VarInt is bigger then allowed");
+      }
+    } while ((current & 0x80) != 0);
+    return out;
+  }
 }

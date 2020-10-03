@@ -28,10 +28,9 @@ package org.geysermc.floodgate.config;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 
-/**
- * The Floodgate configuration used by proxy platforms, currently Velocity and Bungeecord.
- */
+/** The Floodgate configuration used by proxy platforms, currently Velocity and Bungeecord. */
 public final class ProxyFloodgateConfig extends FloodgateConfig {
-    @JsonProperty(value = "send-floodgate-data")
-    @Getter private boolean sendFloodgateData;
+  @JsonProperty(value = "send-floodgate-data")
+  @Getter
+  private boolean sendFloodgateData;
 }

@@ -34,20 +34,20 @@ import org.geysermc.floodgate.api.inject.InjectorAddon;
 import org.geysermc.floodgate.register.AddonRegister;
 
 public final class BungeeAddonModule extends AbstractModule {
-    @Override
-    protected void configure() {
-        bind(AddonRegister.class).asEagerSingleton();
-    }
+  @Override
+  protected void configure() {
+    bind(AddonRegister.class).asEagerSingleton();
+  }
 
-    @Singleton
-    @ProvidesIntoSet
-    public InjectorAddon managerAddon() {
-        return new AddonManagerAddon();
-    }
+  @Singleton
+  @ProvidesIntoSet
+  public InjectorAddon managerAddon() {
+    return new AddonManagerAddon();
+  }
 
-    @Singleton
-    @ProvidesIntoSet
-    public InjectorAddon debugAddon() {
-        return new DebugAddon();
-    }
+  @Singleton
+  @ProvidesIntoSet
+  public InjectorAddon debugAddon() {
+    return new DebugAddon();
+  }
 }

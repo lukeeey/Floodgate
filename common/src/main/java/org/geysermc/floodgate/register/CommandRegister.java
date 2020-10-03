@@ -27,22 +27,21 @@ package org.geysermc.floodgate.register;
 
 import com.google.inject.Inject;
 import com.google.inject.Injector;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.geysermc.floodgate.platform.command.Command;
 import org.geysermc.floodgate.platform.command.CommandRegistration;
 
-import java.util.Set;
-
 @RequiredArgsConstructor(onConstructor = @__(@Inject))
 public final class CommandRegister {
-    private final CommandRegistration registration;
-    private final Injector guice;
+  private final CommandRegistration registration;
+  private final Injector guice;
 
-    @Inject
-    public void registerCommands(Set<Command> foundCommands) {
-        for (Command command : foundCommands) {
-            guice.injectMembers(command);
-            registration.register(command);
-        }
+  @Inject
+  public void registerCommands(Set<Command> foundCommands) {
+    for (Command command : foundCommands) {
+      guice.injectMembers(command);
+      registration.register(command);
     }
+  }
 }

@@ -26,58 +26,54 @@
 package org.geysermc.floodgate.api.inject;
 
 /**
- * The global interface of all the Platform Injectors.
- * The injector can be used for various things. It is used internally for getting Floodgate
- * data out of the handshake packet and for debug mode, but there is also an option to add your
- * own addons.
- * Note that every Floodgate platform that supports netty should implement this,
- * but the platform implementation isn't required to implement this.
+ * The global interface of all the Platform Injectors. The injector can be used for various things.
+ * It is used internally for getting Floodgate data out of the handshake packet and for debug mode,
+ * but there is also an option to add your own addons. Note that every Floodgate platform that
+ * supports netty should implement this, but the platform implementation isn't required to implement
+ * this.
  */
 public interface PlatformInjector {
-    /**
-     * Injects the server connection.
-     * This will allow various addons (like getting the Floodgate data and debug mode) to work.
-     *
-     * @return true if the connection has successfully been injected
-     * @throws Exception if something went wrong while injecting the server connection
-     */
-    boolean inject() throws Exception;
+  /**
+   * Injects the server connection. This will allow various addons (like getting the Floodgate data
+   * and debug mode) to work.
+   *
+   * @return true if the connection has successfully been injected
+   * @throws Exception if something went wrong while injecting the server connection
+   */
+  boolean inject() throws Exception;
 
-    /**
-     * Removes the injection from the server.
-     * Please note that this function should only be used internally (on plugin shutdown).
-     * This method will also remove every added addon.
-     *
-     * @return true if the injection has successfully been removed
-     * @throws Exception if something went wrong while removing the injection
-     */
-    boolean removeInjection() throws Exception;
+  /**
+   * Removes the injection from the server. Please note that this function should only be used
+   * internally (on plugin shutdown). This method will also remove every added addon.
+   *
+   * @return true if the injection has successfully been removed
+   * @throws Exception if something went wrong while removing the injection
+   */
+  boolean removeInjection() throws Exception;
 
-    /**
-     * If the server connection is currently injected.
-     *
-     * @return true if the server connection is currently injected, returns false otherwise
-     */
-    boolean isInjected();
+  /**
+   * If the server connection is currently injected.
+   *
+   * @return true if the server connection is currently injected, returns false otherwise
+   */
+  boolean isInjected();
 
-    /**
-     * Adds an addon to the addon list of the Floodgate Injector
-     * (the addon is called when Floodgate injects a channel).
-     * See {@link InjectorAddon} for more info.
-     *
-     * @param addon the addon to add to the addon list
-     * @return true if the addon has been added, false if the addon is already present
-     */
-    boolean addAddon(InjectorAddon addon);
+  /**
+   * Adds an addon to the addon list of the Floodgate Injector (the addon is called when Floodgate
+   * injects a channel). See {@link InjectorAddon} for more info.
+   *
+   * @param addon the addon to add to the addon list
+   * @return true if the addon has been added, false if the addon is already present
+   */
+  boolean addAddon(InjectorAddon addon);
 
-    /**
-     * Removes an addon from the addon list of the Floodgate Injector
-     * (the addon is called when Floodgate injects a channel).
-     * See {@link InjectorAddon} for more info.
-     *
-     * @param addon the class of the addon to remove from the addon list
-     * @param <T>   the addon type
-     * @return the instance that was present when removing
-     */
-    <T extends InjectorAddon> T removeAddon(Class<T> addon);
+  /**
+   * Removes an addon from the addon list of the Floodgate Injector (the addon is called when
+   * Floodgate injects a channel). See {@link InjectorAddon} for more info.
+   *
+   * @param addon the class of the addon to remove from the addon list
+   * @param <T> the addon type
+   * @return the instance that was present when removing
+   */
+  <T extends InjectorAddon> T removeAddon(Class<T> addon);
 }
