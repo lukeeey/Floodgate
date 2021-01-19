@@ -110,8 +110,9 @@ public final class SpigotPlatformModule extends AbstractModule {
     @Singleton
     public PluginMessageHandler pluginMessageHandler(FloodgateConfigHolder configHolder,
                                                      @Named("formChannel") String formChannel,
-                                                     @Named("skinChannel") String skinChannel) {
-        return new SpigotPluginMessageHandler(configHolder, plugin, formChannel, skinChannel);
+                                                     @Named("skinChannel") String skinChannel,
+                                                     @Named("packetChannel") String packetChannel) {
+        return new SpigotPluginMessageHandler(configHolder, plugin, formChannel, skinChannel, packetChannel);
     }
 
     @Provides

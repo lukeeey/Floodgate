@@ -29,7 +29,15 @@ import static org.geysermc.floodgate.util.MessageFormatter.format;
 
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
+import com.nukkitx.protocol.bedrock.BedrockPacket;
+import com.nukkitx.protocol.bedrock.v422.Bedrock_v422;
+import com.nukkitx.protocol.bedrock.wrapper.BedrockWrapperSerializer;
+import com.nukkitx.protocol.bedrock.wrapper.BedrockWrapperSerializers;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
+import java.util.Collections;
 import java.util.UUID;
+import java.util.zip.Deflater;
 import net.md_5.bungee.api.ProxyServer;
 import net.md_5.bungee.api.chat.TextComponent;
 import net.md_5.bungee.api.connection.Connection;
@@ -49,6 +57,7 @@ public final class BungeePluginMessageHandler extends PluginMessageHandler imple
     private ProxyServer proxy;
     private FloodgateLogger logger;
     private String formChannel;
+    private String packetChannel;
 
     public BungeePluginMessageHandler(FloodgateConfigHolder configHolder) {
         super(configHolder);
@@ -57,13 +66,16 @@ public final class BungeePluginMessageHandler extends PluginMessageHandler imple
     @Inject // called because this is a listener as well
     public void init(Plugin plugin, FloodgateLogger logger,
                      @Named("formChannel") String formChannel,
-                     @Named("skinChannel") String skinChannel) {
+                     @Named("skinChannel") String skinChannel,
+                     @Named("packetChannel") String packetChannel) {
         this.proxy = plugin.getProxy();
         this.logger = logger;
         this.formChannel = formChannel;
+        this.packetChannel = packetChannel;
 
         proxy.registerChannel(formChannel);
         proxy.registerChannel(skinChannel);
+        proxy.registerChannel(packetChannel);
     }
 
     @EventHandler
@@ -101,6 +113,24 @@ public final class BungeePluginMessageHandler extends PluginMessageHandler imple
                 }
             }
         }
+    }
+
+    @Override
+    public boolean sendPacket(UUID uuid, BedrockPacket packet) {
+        try {
+            ByteBuf packetBuffer = ByteBufAllocator.DEFAULT.ioBuffer();
+            BedrockWrapperSerializer serializer = BedrockWrapperSerializers.getSerializer(
+                    Bedrock_v422.V422_CODEC.getProtocolVersion());
+
+            serializer.serialize(packetBuffer, Bedrock_v422.V422_CODEC, Collections.singletonList(packet), Deflater.DEFAULT_COMPRESSION, null);
+
+            byte[] packetData = packetBuffer.array();
+            proxy.getPlayer(uuid).sendData(packetChannel, packetData);
+        } catch (Exception exception) {
+            exception.printStackTrace();
+            return false;
+        }
+        return true;
     }
 
     @Override

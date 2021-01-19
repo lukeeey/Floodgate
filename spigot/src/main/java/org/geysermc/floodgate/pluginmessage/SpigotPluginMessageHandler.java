@@ -26,7 +26,16 @@
 package org.geysermc.floodgate.pluginmessage;
 
 import com.google.common.base.Charsets;
+import com.nukkitx.protocol.bedrock.BedrockPacket;
+import com.nukkitx.protocol.bedrock.v422.Bedrock_v422;
+import com.nukkitx.protocol.bedrock.wrapper.BedrockWrapperSerializer;
+import com.nukkitx.protocol.bedrock.wrapper.BedrockWrapperSerializerV9_10;
+import com.nukkitx.protocol.bedrock.wrapper.BedrockWrapperSerializers;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
+import java.util.Collections;
 import java.util.UUID;
+import java.util.zip.Deflater;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.plugin.messaging.Messenger;
@@ -40,13 +49,15 @@ public class SpigotPluginMessageHandler extends PluginMessageHandler {
     private final JavaPlugin plugin;
     private final String formChannel;
     private final String skinChannel;
+    private final String packetChannel;
 
     public SpigotPluginMessageHandler(FloodgateConfigHolder configHolder, JavaPlugin plugin,
-                                      String formChannel, String skinChannel) {
+                                      String formChannel, String skinChannel, String packetChannel) {
         super(configHolder);
         this.plugin = plugin;
         this.formChannel = formChannel;
         this.skinChannel = skinChannel;
+        this.packetChannel = packetChannel;
 
         Messenger messenger = plugin.getServer().getMessenger();
 
@@ -66,6 +77,26 @@ public class SpigotPluginMessageHandler extends PluginMessageHandler {
                     System.out.println("Got skin from " + origin + "!");
                 }
         );
+
+        // packet
+        messenger.registerOutgoingPluginChannel(plugin, packetChannel);
+    }
+
+    @Override
+    public boolean sendPacket(UUID playerId, BedrockPacket packet) {
+        try {
+            ByteBuf packetBuffer = ByteBufAllocator.DEFAULT.ioBuffer();
+            BedrockWrapperSerializer serializer = BedrockWrapperSerializers.getSerializer(Bedrock_v422.V422_CODEC.getProtocolVersion());
+
+            serializer.serialize(packetBuffer, Bedrock_v422.V422_CODEC, Collections.singletonList(packet), Deflater.DEFAULT_COMPRESSION, null);
+
+            byte[] packetData = packetBuffer.array();
+            Bukkit.getPlayer(playerId).sendPluginMessage(plugin, packetChannel, packetData);
+        } catch (Exception exception) {
+            exception.printStackTrace();
+            return false;
+        }
+        return true;
     }
 
     @Override

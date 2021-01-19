@@ -29,6 +29,10 @@ import static org.geysermc.floodgate.util.MessageFormatter.format;
 
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
+import com.nukkitx.protocol.bedrock.BedrockPacket;
+import com.nukkitx.protocol.bedrock.v422.Bedrock_v422;
+import com.nukkitx.protocol.bedrock.wrapper.BedrockWrapperSerializer;
+import com.nukkitx.protocol.bedrock.wrapper.BedrockWrapperSerializers;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.connection.PluginMessageEvent;
 import com.velocitypowered.api.event.connection.PluginMessageEvent.ForwardResult;
@@ -38,7 +42,11 @@ import com.velocitypowered.api.proxy.ServerConnection;
 import com.velocitypowered.api.proxy.messages.ChannelIdentifier;
 import com.velocitypowered.api.proxy.messages.ChannelMessageSource;
 import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
+import java.util.Collections;
 import java.util.UUID;
+import java.util.zip.Deflater;
 import net.kyori.adventure.text.Component;
 import org.geysermc.cumulus.Form;
 import org.geysermc.floodgate.api.logger.FloodgateLogger;
@@ -50,6 +58,7 @@ public class VelocityPluginMessageHandler extends PluginMessageHandler {
     private ProxyServer proxy;
     private FloodgateLogger logger;
     private ChannelIdentifier formChannel;
+    private ChannelIdentifier packetChannel;
 
     public VelocityPluginMessageHandler(FloodgateConfigHolder configHolder) {
         super(configHolder);
@@ -58,13 +67,16 @@ public class VelocityPluginMessageHandler extends PluginMessageHandler {
     @Inject // called because this is a listener as well
     public void init(ProxyServer proxy, FloodgateLogger logger,
                      @Named("formChannel") String formChannelName,
-                     @Named("skinChannel") String skinChannelName) {
+                     @Named("skinChannel") String skinChannelName,
+                     @Named("packetChannel") String packetChannelName) {
         this.proxy = proxy;
         this.logger = logger;
 
         formChannel = MinecraftChannelIdentifier.from(formChannelName);
+        packetChannel = MinecraftChannelIdentifier.from(packetChannelName);
 
         proxy.getChannelRegistrar().register(formChannel);
+        proxy.getChannelRegistrar().register(packetChannel);
         proxy.getChannelRegistrar().register(MinecraftChannelIdentifier.from(skinChannelName));
     }
 
@@ -106,6 +118,26 @@ public class VelocityPluginMessageHandler extends PluginMessageHandler {
         }
 
         // proxies don't have to receive anything from the skins channel, they only have to send
+    }
+
+    @Override
+    public boolean sendPacket(UUID uuid, BedrockPacket packet) {
+        try {
+            ByteBuf packetBuffer = ByteBufAllocator.DEFAULT.ioBuffer();
+            BedrockWrapperSerializer serializer = BedrockWrapperSerializers.getSerializer(
+                    Bedrock_v422.V422_CODEC.getProtocolVersion());
+
+            serializer.serialize(packetBuffer, Bedrock_v422.V422_CODEC, Collections.singletonList(packet), Deflater.DEFAULT_COMPRESSION, null);
+
+            byte[] packetData = packetBuffer.array();
+
+            return proxy.getPlayer(uuid)
+                    .map(value -> value.sendPluginMessage(packetChannel, packetData))
+                    .orElse(false);
+        } catch (Exception exception) {
+            exception.printStackTrace();
+            return false;
+        }
     }
 
     @Override

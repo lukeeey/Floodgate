@@ -26,12 +26,14 @@
 package org.geysermc.floodgate.listener;
 
 import com.google.inject.Inject;
+import com.nukkitx.protocol.bedrock.packet.TextPacket;
 import java.util.UUID;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerLoginEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.geysermc.floodgate.FloodgatePlayerImpl;
@@ -82,5 +84,18 @@ public final class SpigotListener implements Listener {
         if (api.removePlayer(player.getUniqueId()) != null) {
             logger.translatedInfo("floodgate.ingame.disconnect_name", player.getName());
         }
+    }
+
+    @EventHandler
+    public void onJoin(PlayerJoinEvent event) {
+        TextPacket t = new TextPacket();
+        t.setXuid("");
+        t.setNeedsTranslation(false);
+        t.setSourceName("");
+        t.setPlatformChatId("");
+        t.setMessage("test message!!???");
+        t.setType(TextPacket.Type.SYSTEM);
+
+        api.getPlayer(event.getPlayer().getUniqueId()).sendPacket(t);
     }
 }

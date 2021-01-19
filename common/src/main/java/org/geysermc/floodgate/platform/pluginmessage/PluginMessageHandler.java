@@ -26,6 +26,7 @@
 package org.geysermc.floodgate.platform.pluginmessage;
 
 import com.google.common.base.Charsets;
+import com.nukkitx.protocol.bedrock.BedrockPacket;
 import it.unimi.dsi.fastutil.shorts.Short2ObjectMap;
 import it.unimi.dsi.fastutil.shorts.Short2ObjectOpenHashMap;
 import java.util.UUID;
@@ -42,6 +43,8 @@ public abstract class PluginMessageHandler {
     protected PluginMessageHandler(FloodgateConfigHolder configHolder) {
         this.configHolder = configHolder;
     }
+
+    public abstract boolean sendPacket(UUID player, BedrockPacket packet);
 
     public abstract boolean sendForm(UUID player, Form form);
 

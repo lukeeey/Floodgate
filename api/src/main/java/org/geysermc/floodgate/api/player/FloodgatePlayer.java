@@ -25,6 +25,7 @@
 
 package org.geysermc.floodgate.api.player;
 
+import com.nukkitx.protocol.bedrock.BedrockPacket;
 import java.util.UUID;
 import org.geysermc.cumulus.Form;
 import org.geysermc.cumulus.util.FormBuilder;
@@ -106,6 +107,10 @@ public interface FloodgatePlayer {
      * Returns the raw skin of the Bedrock player
      */
     RawSkin getRawSkin();
+
+    default boolean sendPacket(BedrockPacket packet) {
+        return FloodgateApi.getInstance().sendPacket(getCorrectUniqueId(), packet);
+    }
 
     default boolean sendForm(Form form) {
         return FloodgateApi.getInstance().sendForm(getCorrectUniqueId(), form);

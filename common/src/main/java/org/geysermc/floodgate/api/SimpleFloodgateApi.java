@@ -25,6 +25,7 @@
 
 package org.geysermc.floodgate.api;
 
+import com.nukkitx.protocol.bedrock.BedrockPacket;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -72,6 +73,11 @@ public class SimpleFloodgateApi implements FloodgateApi {
     @Override
     public boolean isFloodgateId(UUID uuid) {
         return uuid.getMostSignificantBits() == 0;
+    }
+
+    @Override
+    public boolean sendPacket(UUID uuid, BedrockPacket packet) {
+        return pluginMessageHandler.sendPacket(uuid, packet);
     }
 
     @Override

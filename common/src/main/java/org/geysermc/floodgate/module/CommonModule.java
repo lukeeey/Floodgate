@@ -150,4 +150,11 @@ public final class CommonModule extends AbstractModule {
     public String skinChannel() {
         return "floodgate:skin";
     }
+
+    @Provides
+    @Singleton
+    @Named("packetChannel")
+    public String packetChannel() {
+        return "floodgate:packet";
+    }
 }
